@@ -1,10 +1,9 @@
-const CACHE_NAME = 'warikan-cache-v4'; // 念のためバージョンを更新
+const CACHE_NAME = 'warikan-cache-v5'; // キャッシュバージョン
 const urlsToCache = [
-    './index.html', // (修正) warikan-app.html から index.html に変更
+    './index.html', 
     './manifest.json',
     'https://cdn.tailwindcss.com',
     'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
-    // アイコンもキャッシュ対象に追加（GitHubにアップロードするファイル）
     './icon-192x192.png',
     './icon-512x512.png'
 ];
@@ -14,15 +13,16 @@ self.addEventListener('install', event => {
         caches.open(CACHE_NAME)
             .then(cache => {
                 console.log('Opened cache');
-                // ネットワークリクエストが失敗してもインストールを続行する
                 const cachePromises = urlsToCache.map(urlToCache => {
-                    return cache.add(urlToCache).catch(err => {
+                    // ネットワークから最新を取得してキャッシュする (reload)
+                    const request = new Request(urlToCache, {cache: 'reload'});
+                    return cache.add(request).catch(err => {
                         console.warn(`Failed to cache ${urlToCache}: ${err}`);
                     });
                 });
                 return Promise.all(cachePromises);
             })
-            .then(() => self.skipWaiting()) // 古いSWをすぐに置き換える
+            .then(() => self.skipWaiting()) 
     );
 });
 
@@ -38,37 +38,46 @@ self.addEventListener('activate', event => {
                     return caches.delete(cacheName);
                 })
             );
-        }).then(() => self.clients.claim()) // クライアントを即座に制御
+        }).then(() => self.clients.claim()) 
     );
 });
 
 self.addEventListener('fetch', event => {
-    // Stale-While-Revalidate 戦略
+    // HTMLファイル(index.html)は Network First に変更
+    // これにより、オンライン時は常に最新版を見に行き、オフライン時だけキャッシュを使う
+    if (event.request.mode === 'navigate' || (event.request.destination === 'document')) {
+        event.respondWith(
+            fetch(event.request).then(response => {
+                // ネットワークから取得成功したら、キャッシュにも保存
+                return caches.open(CACHE_NAME).then(cache => {
+                    cache.put(event.request, response.clone());
+                    return response;
+                });
+            }).catch(() => {
+                // ネットワーク失敗（オフライン）時はキャッシュから返す
+                return caches.match(event.request);
+            })
+        );
+        return;
+    }
+
+    // その他のアセット (CSS, Font, Iconなど) は Stale-While-Revalidate
     event.respondWith(
         caches.open(CACHE_NAME).then(cache => {
             return cache.match(event.request).then(response => {
-                // ネットワークリクエストのPromise
                 const fetchPromise = fetch(event.request).then(networkResponse => {
-                    // ネットワークから取得成功
-                    // 有効なレスポンスのみキャッシュ
-                    if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+                    if (networkResponse && networkResponse.status === 200) {
+                         // 'basic' だけでなく 'opaque' (CDN) もキャッシュ対象にする
                         cache.put(event.request, networkResponse.clone());
                     }
                     return networkResponse;
                 }).catch(err => {
-                    // ネットワークから取得失敗（オフライン）
                     console.warn('Fetch failed; returning stale response from cache.', event.request.url);
-                    // ネットワークがダメならキャッシュ済みのものを返す (キャッシュがなければundefined)
                     return response; 
                 });
 
-                // キャッシュがあればそれを先に返す (Stale)
-                if (response) {
-                    return response;
-                }
-                
-                // キャッシュがなければ、ネットワークの結果を待つ (While-Revalidate)
-                return fetchPromise;
+                // キャッシュがあれば先に返す
+                return response || fetchPromise;
             });
         })
     );

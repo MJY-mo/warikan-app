@@ -29,6 +29,10 @@
         .shadow-soft {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
         }
+        /* (修正) アコーディオンの矢印を回転させる */
+        details[open] .details-marker {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -54,19 +58,26 @@
                 </button>
             </div>
 
-            <!-- 参加人数と半額設定 -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">2. 何人で割る？</label>
-                <div class="mb-4">
+            <!-- (修正) 2. 参加人数と割引設定 -->
+            <div class="mb-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">2. 何人で割る？</label>
                     <label for="total-members" class="text-xs text-gray-500">合計人数</label>
                     <input type="number" id="total-members" min="1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg p-3" placeholder="例: 5">
                 </div>
-                <div>
-                    <label class="text-xs text-gray-500">半額払いの人を選択</label>
-                    <div id="half-members-selector" class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        <!-- 半額対象者はJSで動的に追加 -->
+                
+                <!-- (新規) 割引設定のアコーディオン -->
+                <details id="discount-accordion" class="bg-gray-50 rounded-lg border border-gray-200">
+                    <summary class="text-sm font-medium text-gray-700 p-3 cursor-pointer list-none flex justify-between items-center">
+                        <span>割引設定（半額・免除）</span>
+                        <svg class="w-5 h-5 transition-transform transform details-marker" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                        </svg>
+                    </summary>
+                    <div id="discount-selector" class="p-3 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <!-- JS will populate this -->
                     </div>
-                </div>
+                </details>
             </div>
             
             <!-- 精算方法 -->
@@ -103,8 +114,9 @@
     </div>
 
     <!-- Help Modal -->
+    <!-- (修正) モーダルが見切れないように max-h と overflow-y を追加 -->
     <div id="help-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full m-4">
+        <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-gray-900">操作</h3>
                 <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -117,7 +129,8 @@
                     <ol class="list-decimal list-inside space-y-1 text-sm">
                         <li>「自分」の支払額を入力します。別の人が払った場合は「支払い（レシート）を追加」します。</li>
                         <li>「新しい支払い者...」を選ぶか、名前の横の鉛筆ボタンで名前を編集できます。</li>
-                        <li>金額を割る合計人数を入力します。立て替えた人も含めた総人数です。半額の人を選びたい場合は対象者を選びます。</li>
+                        <li>金額を割る合計人数を入力します。立て替えた人も含めた総人数です。</li>
+                        <li>（(新規)）割引が必要な場合は「割引設定」を開き、対象者の「半額」または「免除」を選びます。</li>
                         <li>やり取りの計算方法を選んで計算するボタンを押してください。</li>
                     </ol>
                 </div>
@@ -160,7 +173,8 @@
             const addPaymentBtn = document.getElementById('add-payment-btn');
             const calculateBtn = document.getElementById('calculate-btn');
             const totalMembersInput = document.getElementById('total-members');
-            const halfMembersSelector = document.getElementById('half-members-selector');
+            const discountAccordion = document.getElementById('discount-accordion'); // (新規)
+            const discountSelector = document.getElementById('discount-selector'); // (修正)
             const resultContainer = document.getElementById('result-container');
             const resultCard = document.getElementById('result-card');
             const summaryDiv = document.getElementById('summary');
@@ -177,13 +191,13 @@
             const nameEditCancelBtn = document.getElementById('name-edit-cancel-btn');
 
             // --- State ---
-            let participantNames = new Map([['A', '自分']]); // { 'A': '自分', 'B': '田中' }
+            let participantNames = new Map([['A', '自分']]); 
             let paymentIdCounter = 0;
             const denominations = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
-            const STORAGE_KEY = 'warikanAppState_v2';
+            const STORAGE_KEY = 'warikanAppState_v3'; // (修正) データ構造変更のためv3
             let activeNameEditCallback = null;
 
-            // --- Modal Control ---
+            // --- Modal Control (変更なし) ---
             helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
             closeModalBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
             helpModal.addEventListener('click', (e) => {
@@ -219,23 +233,27 @@
                 if(e.target === nameEditModal) hideNameEditModal();
             });
 
-            // --- Storage ---
+            // --- Storage (修正) ---
             const saveState = () => {
                 try {
                     const payments = [];
                     paymentsContainer.querySelectorAll('.payment-item').forEach(item => {
                         const payer = item.querySelector('.payer-select').value;
-                        const amount = item.querySelector('.amount-input').value;
+                        const amount = item.querySelector('.amount-input').value; // (確認) 金額も保存
                         payments.push({ id: item.id, payer, amount });
                     });
 
-                    const halfChecked = Array.from(halfMembersSelector.querySelectorAll('input:checked')).map(cb => cb.value);
+                    // (修正) 半額と免除の2種類を保存
+                    const halfChecked = Array.from(discountSelector.querySelectorAll('input.half-member-cb:checked')).map(cb => cb.value);
+                    const exemptChecked = Array.from(discountSelector.querySelectorAll('input.exempt-member-cb:checked')).map(cb => cb.value);
 
                     const state = {
                         participantNames: Array.from(participantNames.entries()),
                         payments,
                         totalMembers: totalMembersInput.value,
-                        halfChecked,
+                        halfChecked, // (修正)
+                        exemptChecked, // (新規)
+                        isDiscountOpen: discountAccordion.open, // (新規)
                         calcMode: document.querySelector('input[name="calculation-mode"]:checked').value
                     };
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -261,25 +279,29 @@
                     paymentsContainer.innerHTML = '';
                     if (state.payments && state.payments.length > 0) {
                         state.payments.forEach(p => {
-                            addPayment(p.payer, p.amount, p.id);
+                            addPayment(p.payer, p.amount, p.id); // (確認) 金額も復元
                         });
                         paymentIdCounter = state.payments.length;
                     } else {
-                        addPayment(); // 保存された支払いがない場合
+                        addPayment(); 
                     }
 
                     totalMembersInput.value = state.totalMembers || '';
-                    updateHalfMemberSelector(new Set(state.halfChecked || [])); // チェック状態を復元
+                    // (修正) 割引アコーディオンの開閉状態を復元
+                    discountAccordion.open = state.isDiscountOpen || false; 
+                    // (修正) 半額と免除のチェック状態を復元
+                    updateDiscountSelector(new Set(state.halfChecked || []), new Set(state.exemptChecked || []));
 
                     document.querySelector(`input[name="calculation-mode"][value="${state.calcMode || 'simple'}"]`).checked = true;
 
                 } catch (e) {
                     console.error("Failed to load state from localStorage", e);
+                    localStorage.removeItem(STORAGE_KEY); // (修正) 壊れたデータを削除
                     addPayment(); // ロード失敗時
                 }
             };
 
-            // --- Participant & Naming ---
+            // --- Participant & Naming (変更なし) ---
             const getParticipantName = (internalName) => {
                 return participantNames.get(internalName) || internalName;
             };
@@ -287,10 +309,8 @@
             const setParticipantName = (internalName, newDisplayName) => {
                 if (!newDisplayName) return;
                 
-                // 既に同じ表示名が使われていないかチェック (自分自身は除く)
                 for (const [key, value] of participantNames.entries()) {
                     if (value === newDisplayName && key !== internalName) {
-                        // カスタムアラートをここでも使えるが、標準alertのままでも良い
                         alert("この名前は既に使用されています。"); 
                         return;
                     }
@@ -298,7 +318,7 @@
                 
                 participantNames.set(internalName, newDisplayName);
                 updateAllPayerDropdowns();
-                updateHalfMemberSelector();
+                updateDiscountSelector();
                 saveState();
             };
 
@@ -346,14 +366,20 @@
                 });
             };
 
-            const updateHalfMemberSelector = (preCheckedNames = new Set()) => {
+            // --- (修正) Discount Selector Logic ---
+            const updateDiscountSelector = (preCheckedHalf = new Set(), preCheckedExempt = new Set()) => {
+                // 現在のチェック状態を保持
                 const currentHalfChecked = new Set(
-                    Array.from(halfMembersSelector.querySelectorAll('input:checked')).map(cb => cb.value)
+                    Array.from(discountSelector.querySelectorAll('input.half-member-cb:checked')).map(cb => cb.value)
+                );
+                const currentExemptChecked = new Set(
+                    Array.from(discountSelector.querySelectorAll('input.exempt-member-cb:checked')).map(cb => cb.value)
                 );
                 
-                const namesToCheck = new Set([...currentHalfChecked, ...preCheckedNames]);
+                const namesToCheckHalf = new Set([...currentHalfChecked, ...preCheckedHalf]);
+                const namesToCheckExempt = new Set([...currentExemptChecked, ...preCheckedExempt]);
 
-                halfMembersSelector.innerHTML = '';
+                discountSelector.innerHTML = '';
                 const totalMembers = parseInt(totalMembersInput.value) || 0;
                 
                 const currentPayers = [...new Set(Array.from(document.querySelectorAll('.payer-select')).map(s => s.value).filter(v => v !== 'new_payer'))];
@@ -374,33 +400,67 @@
                 [...allParticipants].sort((a, b) => getParticipantName(a).localeCompare(getParticipantName(b))).forEach(internalName => {
                     const displayName = getParticipantName(internalName);
                     const div = document.createElement('div');
-                    div.className = 'flex items-center gap-2 p-2 bg-gray-100 rounded-md';
-                    const checkboxId = `half-checkbox-${internalName}`;
-                    const isChecked = namesToCheck.has(internalName) ? 'checked' : '';
+                    // (修正) レイアウト変更
+                    div.className = 'flex items-center justify-between gap-2 p-2 bg-white rounded-md border border-gray-200';
+                    const checkboxIdHalf = `half-checkbox-${internalName}`;
+                    const checkboxIdExempt = `exempt-checkbox-${internalName}`;
                     
+                    // (修正) 相互排他ロジックのため、チェック状態を確定
+                    let isCheckedHalf = namesToCheckHalf.has(internalName);
+                    let isCheckedExempt = namesToCheckExempt.has(internalName);
+                    if(isCheckedHalf && isCheckedExempt) { isCheckedExempt = false; } // 半額を優先
+
                     div.innerHTML = `
-                        <input type="checkbox" id="${checkboxId}" value="${internalName}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 half-member-cb" ${isChecked}>
-                        <label for="${checkboxId}" class="text-sm text-gray-700 flex-grow">${displayName}</label>
-                        <button type="button" class="edit-participant-name-btn flex-shrink-0 text-gray-500 hover:text-indigo-600" data-name="${internalName}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <label for="${checkboxIdHalf}" class="text-sm text-gray-700 flex-grow">${displayName}</label>
+                            <button type="button" class="edit-participant-name-btn flex-shrink-0 text-gray-500 hover:text-indigo-600" data-name="${internalName}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="${checkboxIdHalf}" value="${internalName}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 half-member-cb" ${isCheckedHalf ? 'checked' : ''}>
+                            <label for="${checkboxIdHalf}" class="text-xs text-gray-600">半額</label>
+                            
+                            <input type="checkbox" id="${checkboxIdExempt}" value="${internalName}" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500 exempt-member-cb" ${isCheckedExempt ? 'checked' : ''}>
+                            <label for="${checkboxIdExempt}" class="text-xs text-gray-600">免除</label>
+                        </div>
                     `;
-                    halfMembersSelector.appendChild(div);
+                    discountSelector.appendChild(div);
                 });
 
-                // イベントリスナーを再設定
-                halfMembersSelector.querySelectorAll('.edit-participant-name-btn').forEach(btn => {
+                // (修正) イベントリスナーを再設定 (相互排他ロジック含む)
+                discountSelector.querySelectorAll('.edit-participant-name-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const internalName = e.currentTarget.dataset.name;
                         const currentDisplayName = getParticipantName(internalName);
                         showNameEditModal(internalName, currentDisplayName, '名前を編集', setParticipantName);
                     });
                 });
-                halfMembersSelector.querySelectorAll('.half-member-cb').forEach(cb => {
-                    cb.addEventListener('change', saveState);
+
+                discountSelector.querySelectorAll('.half-member-cb').forEach(cb => {
+                    cb.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            // (新規) 免除のチェックを外す
+                            const exemptCb = e.target.closest('.flex.items-center.gap-3').querySelector('.exempt-member-cb');
+                            if (exemptCb) exemptCb.checked = false;
+                        }
+                        saveState();
+                    });
+                });
+                
+                discountSelector.querySelectorAll('.exempt-member-cb').forEach(cb => {
+                    cb.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            // (新規) 半額のチェックを外す
+                            const halfCb = e.target.closest('.flex.items-center.gap-3').querySelector('.half-member-cb');
+                            if (halfCb) halfCb.checked = false;
+                        }
+                        saveState();
+                    });
                 });
             };
 
+            // --- Payment Item Logic (修正) ---
             const addPayment = (payer = 'A', amount = '', id = null) => {
                 paymentIdCounter++;
                 const paymentId = id || `payment-${paymentIdCounter}`;
@@ -414,7 +474,7 @@
                 amountInput.type = 'number';
                 amountInput.className = "amount-input w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 text-base";
                 amountInput.placeholder = "金額 (円)";
-                amountInput.value = amount;
+                amountInput.value = amount; // (確認) 金額をセット
 
                 paymentEl.innerHTML = `
                     <div class="flex-grow flex items-center gap-2">
@@ -443,11 +503,11 @@
                             participantNames.set(internalName, newDisplayName);
                             updateAllPayerDropdowns();
                             e.target.value = newPayerInternalName;
-                            updateHalfMemberSelector();
+                            updateDiscountSelector(); // (修正)
                             saveState();
                         });
                     } else {
-                        updateHalfMemberSelector();
+                        updateDiscountSelector(); // (修正)
                         saveState();
                     }
                 });
@@ -462,20 +522,21 @@
                 paymentEl.querySelector('.remove-payment-btn').addEventListener('click', (e) => {
                     const idToRemove = e.currentTarget.getAttribute('data-remove');
                     document.getElementById(idToRemove).remove();
-                    updateHalfMemberSelector();
+                    updateDiscountSelector(); // (修正)
                     saveState();
                 });
                 
-                paymentEl.querySelector('.amount-input').addEventListener('input', saveState);
+                paymentEl.querySelector('.amount-input').addEventListener('input', saveState); // (確認) 金額入力時に保存
 
-                updateHalfMemberSelector();
+                updateDiscountSelector(); // (修正)
             };
             
             addPaymentBtn.addEventListener('click', () => addPayment(participantNames.keys().next().value));
             totalMembersInput.addEventListener('input', () => {
-                updateHalfMemberSelector();
+                updateDiscountSelector(); // (修正)
                 saveState();
             });
+            discountAccordion.addEventListener('toggle', saveState); // (新規) アコーディオン開閉を保存
             document.querySelectorAll('input[name="calculation-mode"]').forEach(radio => {
                 radio.addEventListener('change', saveState);
             });
@@ -493,11 +554,9 @@
                 }
                 return breakdown;
             };
-
             const countPiecesFromBreakdown = (breakdown) => {
                 return breakdown.reduce((sum, item) => sum + item.count, 0);
             };
-
              const getOptimalPayment = (amount) => {
                 const directBreakdown = getBreakdown(amount);
                 let bestOption = {
@@ -505,33 +564,25 @@
                     payment: amount,
                     change: 0
                 };
-
                 const candidates = new Set();
                 if (amount > 0) {
                     if (amount % 100 !== 0) candidates.add(Math.ceil(amount / 100) * 100);
                     if (amount % 500 !== 0) candidates.add(Math.ceil(amount / 500) * 500);
                     if (amount % 1000 !== 0) candidates.add(Math.ceil(amount / 1000) * 1000);
-                    
                     const nextThousand = Math.ceil(amount/1000) * 1000;
                     if(nextThousand < 10000 && nextThousand > 0) candidates.add(nextThousand + 1000);
-
                     denominations.forEach(d => {
                         if (d > amount) candidates.add(d);
                     });
                 }
-                
                 candidates.forEach(candidateAmount => {
                     if(candidateAmount <= amount) return;
-
                     const paymentBreakdown = getBreakdown(candidateAmount);
                     const paymentCount = countPiecesFromBreakdown(paymentBreakdown);
-
                     const changeAmount = candidateAmount - amount;
                     const changeBreakdown = getBreakdown(changeAmount);
                     const changeCount = countPiecesFromBreakdown(changeBreakdown);
-
                     const totalCount = paymentCount + changeCount;
-
                     if (totalCount < bestOption.count) {
                         bestOption = {
                             count: totalCount,
@@ -540,7 +591,6 @@
                         };
                     }
                 });
-                 
                 let text;
                 if (bestOption.change > 0) {
                      text = `【お釣り】 ${bestOption.payment.toLocaleString()}円で払い、${bestOption.change.toLocaleString()}円のお釣りをもらう`
@@ -549,7 +599,6 @@
                 }
                 return { count: bestOption.count, text };
             };
-            
             const calculateDirectSettlementCost = (balances) => {
                 let cost = 0;
                 const tempBalances = new Map(balances);
@@ -559,10 +608,8 @@
                     if(amount > 0.5) creditors.push({person, amount: Math.round(amount)});
                     else if (amount < -0.5) debtors.push({person, amount: -Math.round(amount)});
                 });
-                
                 creditors.sort((a,b) => b.amount - a.amount);
                 debtors.sort((a,b) => b.amount - a.amount);
-
                 let c = 0, d = 0;
                 while(c < creditors.length && d < debtors.length){
                     const transfer = Math.min(creditors[c].amount, debtors[d].amount);
@@ -574,46 +621,35 @@
                 }
                 return cost;
             };
-
             const solveCashMinimization = (initialBalances) => {
                 let transactions = [];
                 const tempBalances = new Map(initialBalances);
-
                 while (true) {
                     const currentCost = calculateDirectSettlementCost(tempBalances);
                     let bestReduction = 0;
                     let bestMove = null;
-
                     const debtors = [];
                     tempBalances.forEach((amount, person) => {
                        if (amount < -0.5) debtors.push(person);
                     });
-                    
                     const participants = Array.from(tempBalances.keys());
-
                     for (const from of debtors) {
                         for (const to of participants) {
                             if (from === to) continue;
-
                             const hypotheticalBalances = new Map(tempBalances);
                             const amountToPay = -Math.round(hypotheticalBalances.get(from));
-                            
                             hypotheticalBalances.set(from, hypotheticalBalances.get(from) + amountToPay);
                             hypotheticalBalances.set(to, (hypotheticalBalances.get(to) || 0) - amountToPay);
-
                             const newCost = calculateDirectSettlementCost(hypotheticalBalances);
                             const moveCost = getOptimalPayment(amountToPay).count;
                             const totalNewCost = moveCost + newCost;
-                            
                             const reduction = currentCost - totalNewCost;
-
                             if (reduction > bestReduction) {
                                 bestReduction = reduction;
                                 bestMove = { from, to, amount: amountToPay };
                             }
                         }
                     }
-
                     if (bestMove) {
                         transactions.push(bestMove);
                         const { from, to, amount } = bestMove;
@@ -627,7 +663,6 @@
                         });
                          finalCreditors.sort((a, b) => b.amount - a.amount);
                         finalDebtors.sort((a, b) => b.amount - a.amount);
-
                         let c = 0, d = 0;
                         while(c < finalCreditors.length && d < finalDebtors.length){
                             const transfer = Math.min(finalCreditors[c].amount, finalDebtors[d].amount);
@@ -640,15 +675,12 @@
                         break;
                     }
                 }
-                
                 let totalCoinCost = 0;
                 transactions.forEach(t => {
                     totalCoinCost += getOptimalPayment(t.amount).count;
                 });
-
                 return { transactions, totalCoinCost };
             };
-
             const showError = (message) => {
                 resultContainer.classList.remove('hidden');
                 summaryDiv.innerHTML = '';
@@ -656,7 +688,7 @@
                 resultContainer.scrollIntoView({ behavior: 'smooth' });
             };
 
-            // --- Calculate Button Event ---
+            // --- Calculate Button Event (修正) ---
             calculateBtn.addEventListener('click', () => {
                 const totalMembers = parseInt(totalMembersInput.value);
                 
@@ -683,23 +715,35 @@
                     return;
                 }
 
+                // (修正) 半額と免除の両方を取得
                 const halfPriceMembers = new Set(
-                    Array.from(halfMembersSelector.querySelectorAll('input:checked')).map(cb => cb.value)
+                    Array.from(discountSelector.querySelectorAll('input.half-member-cb:checked')).map(cb => cb.value)
+                );
+                const exemptPriceMembers = new Set(
+                    Array.from(discountSelector.querySelectorAll('input.exempt-member-cb:checked')).map(cb => cb.value)
                 );
                 
                 const totalHalfMembers = halfPriceMembers.size;
-                const fullMembers = totalMembers - totalHalfMembers;
+                const totalExemptMembers = exemptPriceMembers.size;
+                
+                // (修正) 全額払いの人数
+                const fullMembers = totalMembers - totalHalfMembers - totalExemptMembers;
 
-                if (fullMembers + totalHalfMembers * 0.5 <= 0) {
-                    showError('割り勘の対象者がいません。');
+                // (修正) 割り勘の単位数
+                const totalUnits = fullMembers + totalHalfMembers * 0.5;
+
+                if (totalUnits <= 0 && totalPayment > 0) {
+                    showError('割り勘の対象者がいません（全員免除など）。');
                     return;
                 }
                 
                 const payments = Array.from(aggregatedPayments, ([payer, amount]) => ({ payer, amount }));
-                const totalUnits = fullMembers + totalHalfMembers * 0.5;
-                const baseFullCost = Math.floor(totalPayment / totalUnits);
-                const baseHalfCost = Math.floor(baseFullCost * 0.5);
+                
+                // (修正) 0除算を回避
+                const baseFullCost = totalUnits > 0 ? Math.floor(totalPayment / totalUnits) : 0;
+                const baseHalfCost = totalUnits > 0 ? Math.floor(baseFullCost * 0.5) : 0;
 
+                // (修正) 全額免除(0円)も含めて計算
                 const calculatedTotal = baseFullCost * fullMembers + baseHalfCost * totalHalfMembers;
                 let remainder = totalPayment - calculatedTotal;
 
@@ -713,25 +757,37 @@
                 }
 
                 if (totalMembers !== allMemberNames.size) {
-                    updateHalfMemberSelector();
-                    showError('人数が一致しません。「半額払いの人を選択」のリストが最新か確認してください。');
+                    updateDiscountSelector(); // (修正)
+                    showError('人数が一致しません。「割引設定」のリストが最新か確認してください。');
                     return;
                 }
 
                 const memberCosts = new Map();
                 allMemberNames.forEach((name) => {
-                    const cost = halfPriceMembers.has(name) ? baseHalfCost : baseFullCost;
+                    let cost = 0;
+                    // (修正) 免除、半額、全額の順でコストを決定
+                    if (exemptPriceMembers.has(name)) {
+                        cost = 0;
+                    } else if (halfPriceMembers.has(name)) {
+                        cost = baseHalfCost;
+                    } else {
+                        cost = baseFullCost;
+                    }
                     memberCosts.set(name, cost);
                 });
                 
                 const calcMode = document.querySelector('input[name="calculation-mode"]:checked').value;
+
+                // (修正) 端数負担のロジック (免除者には負担させない)
+                const remainderTargetsPool = [...allMemberNames].filter(name => !exemptPriceMembers.has(name));
 
                 if (calcMode === 'cash' && remainder > 0) {
                     for (let i = 0; i < remainder; i++) {
                         let bestPerson = null;
                         let minCost = Infinity;
 
-                        for (const person of allMemberNames) {
+                        // (修正) 免除者以外から端数負担者を選ぶ
+                        for (const person of remainderTargetsPool) {
                             const hypotheticalCosts = new Map(memberCosts);
                             hypotheticalCosts.set(person, hypotheticalCosts.get(person) + 1);
 
@@ -748,23 +804,36 @@
                         }
                          if(bestPerson) {
                              memberCosts.set(bestPerson, memberCosts.get(bestPerson) + 1);
-                         } else {
-                             const firstPerson = [...allMemberNames][0];
+                         } else if (remainderTargetsPool.length > 0) { // (修正) 負担できる人がいれば
+                             const firstPerson = remainderTargetsPool[0];
                              memberCosts.set(firstPerson, memberCosts.get(firstPerson) + 1);
                          }
                     }
                 } else if (remainder > 0) {
-                    const nonPayers = [...allMemberNames].filter(name => !finalPayerNames.includes(name));
+                    // (修正) 免除者以外から端数負担者を選ぶ
+                    const nonPayers = remainderTargetsPool.filter(name => !finalPayerNames.includes(name));
                     let remainderTargets = [];
                     if (nonPayers.length > 0) {
                         remainderTargets = nonPayers;
                     } else {
-                        const sortedPayers = payments.sort((a, b) => a.amount - b.amount);
+                        // (修正) 支払者リストも、免除者を除いたプールからソート
+                        const sortedPayers = payments
+                            .filter(p => remainderTargetsPool.includes(p.payer))
+                            .sort((a, b) => a.amount - b.amount);
                         remainderTargets = sortedPayers.map(p => p.payer);
                     }
-                    for (let i = 0; i < remainder; i++) {
-                        const targetPerson = remainderTargets[i % remainderTargets.length];
-                        memberCosts.set(targetPerson, memberCosts.get(targetPerson) + 1);
+                    
+                    if(remainderTargets.length > 0) {
+                        for (let i = 0; i < remainder; i++) {
+                            const targetPerson = remainderTargets[i % remainderTargets.length];
+                            memberCosts.set(targetPerson, memberCosts.get(targetPerson) + 1);
+                        }
+                    } else if (remainderTargetsPool.length > 0) {
+                        // (フォールバック) 支払者が全員免除だった場合など
+                        for (let i = 0; i < remainder; i++) {
+                            const targetPerson = remainderTargetsPool[i % remainderTargetsPool.length];
+                            memberCosts.set(targetPerson, memberCosts.get(targetPerson) + 1);
+                        }
                     }
                 }
 
@@ -798,6 +867,7 @@
                 displayResults(transactions, totalPayment, totalMembers, displayFullCost, [...allMemberNames], calcMode);
             });
             
+            // --- Display Results (変更なし) ---
             const displayResults = (transactions, total, members, perPerson, allParticipants, calcMode) => {
                 resultCard.innerHTML = '';
                 const colorPalette = {
@@ -875,7 +945,7 @@
                 resultContainer.scrollIntoView({ behavior: 'smooth' });
             };
             
-            // --- PWA Registration ---
+            // --- PWA Registration (変更なし) ---
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js')
                     .then(registration => {
@@ -892,3 +962,4 @@
     </script>
 </body>
 </html>
+
