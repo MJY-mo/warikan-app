@@ -10,7 +10,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="WARIKAN">
-    <link rel="apple-touch-icon" href="icon-192x192.png"> 
+    <!-- 
+      以下の apple-touch-icon の href は、ご自身でアップロードした 
+      180x180 (または 192x192) のアイコンパスに変更してください。
+      例: href="./icon-192x192.png" 
+    -->
+    <link rel="apple-touch-icon" href="./icon-192x192.png"> 
     <link rel="manifest" href="manifest.json">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,9 +34,21 @@
         .shadow-soft {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
         }
-        /* (修正) アコーディオンの矢印を回転させる */
-        details[open] .details-marker {
+        /* アコーディオン用 */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .accordion-open {
+            max-height: 500px; /* 十分な高さを確保 */
+            transition: max-height 0.5s ease-in;
+        }
+        .rotate-180 {
             transform: rotate(180deg);
+        }
+        .transition-transform {
+            transition: transform 0.3s ease;
         }
     </style>
 </head>
@@ -58,26 +75,27 @@
                 </button>
             </div>
 
-            <!-- (修正) 2. 参加人数と割引設定 -->
-            <div class="mb-6 space-y-4">
+            <!-- 参加人数 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">2. 何人で割る？</label>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">2. 何人で割る？</label>
                     <label for="total-members" class="text-xs text-gray-500">合計人数</label>
                     <input type="number" id="total-members" min="1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg p-3" placeholder="例: 5">
                 </div>
-                
-                <!-- (新規) 割引設定のアコーディオン -->
-                <details id="discount-accordion" class="bg-gray-50 rounded-lg border border-gray-200">
-                    <summary class="text-sm font-medium text-gray-700 p-3 cursor-pointer list-none flex justify-between items-center">
-                        <span>割引設定（半額・免除）</span>
-                        <svg class="w-5 h-5 transition-transform transform details-marker" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                        </svg>
-                    </summary>
-                    <div id="discount-selector" class="p-3 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <!-- JS will populate this -->
+            </div>
+
+            <!-- 割引設定 (アコーディオン) -->
+            <div class="mb-6">
+                <button id="discount-toggle-btn" class="w-full flex justify-between items-center text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <span class="text-sm font-medium text-gray-700">割引設定（半額・免除）</span>
+                    <svg id="discount-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-down transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div id="discount-content" class="accordion-content mt-2">
+                    <label class="text-xs text-gray-500">割引対象の人を選択</label>
+                    <div id="discount-members-selector" class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <!-- 割引対象者はJSで動的に追加 -->
                     </div>
-                </details>
+                </div>
             </div>
             
             <!-- 精算方法 -->
@@ -114,23 +132,23 @@
     </div>
 
     <!-- Help Modal -->
-    <!-- (修正) モーダルが見切れないように max-h と overflow-y を追加 -->
     <div id="help-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
+        <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full m-4 flex flex-col" style="max-height: 90vh;">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0">
                 <h3 class="text-xl font-bold text-gray-900">操作</h3>
                 <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x-circle"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
                 </button>
             </div>
-            <div class="text-gray-700 space-y-4">
+            <!-- (修正) モーダル内容をスクロール可能に -->
+            <div class="text-gray-700 space-y-4 overflow-y-auto">
                 <div>
                     <h4 class="font-semibold text-gray-800 mb-2">操作</h4>
                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                        <li>「自分」の支払額を入力します。別の人が払った場合は「支払い（レシート）を追加」します。</li>
-                        <li>「新しい支払い者...」を選ぶか、名前の横の鉛筆ボタンで名前を編集できます。</li>
+                        <li>「支払い（レシート）を追加」で立て替えた人の情報と金額を入力します。</li>
+                        <li>支払者の名前は、ドロップダウン横の鉛筆ボタン、または「割引設定」のリストから編集できます。</li>
                         <li>金額を割る合計人数を入力します。立て替えた人も含めた総人数です。</li>
-                        <li>（(新規)）割引が必要な場合は「割引設定」を開き、対象者の「半額」または「免除」を選びます。</li>
+                        <li>「割引設定」を開き、半額や全額免除の人を指定できます。</li>
                         <li>やり取りの計算方法を選んで計算するボタンを押してください。</li>
                     </ol>
                 </div>
@@ -142,6 +160,10 @@
                         <li><strong>硬貨・紙幣の枚数が最少：</strong> 全員のやり取りで、硬貨・紙幣の総移動枚数が最も少なくなる人が端数を負担します。</li>
                     </ul>
                 </div>
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-2">データについて</h4>
+                    <p class="text-sm">入力内容は自動でブラウザに保存されます。アプリを閉じてもデータは消えません。リセットしたい場合は、各項目の入力（金額など）を削除してください。</p>
+                </div>
             </div>
         </div>
     </div>
@@ -149,18 +171,12 @@
     <!-- Name Edit Modal -->
     <div id="name-edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full m-4">
-            <h3 id="name-edit-title" class="text-xl font-bold text-gray-900 mb-4">名前を編集</h3>
-            <div class="text-gray-700 space-y-4">
-                <input type="text" id="name-edit-input" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg p-3" placeholder="例: 田中">
-                <input type="hidden" id="name-edit-old-name">
-            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-4" id="name-edit-title">名前の編集</h3>
+            <input type="text" id="name-edit-input" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg p-3" placeholder="例: 田中">
+            <input type="hidden" id="name-edit-old-id">
             <div class="mt-6 flex justify-end gap-3">
-                <button id="name-edit-cancel-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
-                    キャンセル
-                </button>
-                <button id="name-edit-save-btn" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-                    保存
-                </button>
+                <button id="name-edit-cancel" type="button" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">キャンセル</button>
+                <button id="name-edit-save" type="button" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">保存</button>
             </div>
         </div>
     </div>
@@ -168,169 +184,127 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- Element Cache ---
             const paymentsContainer = document.getElementById('payments-container');
             const addPaymentBtn = document.getElementById('add-payment-btn');
             const calculateBtn = document.getElementById('calculate-btn');
             const totalMembersInput = document.getElementById('total-members');
-            const discountAccordion = document.getElementById('discount-accordion'); // (新規)
-            const discountSelector = document.getElementById('discount-selector'); // (修正)
+            const discountToggleBtn = document.getElementById('discount-toggle-btn');
+            const discountArrow = document.getElementById('discount-arrow');
+            const discountContent = document.getElementById('discount-content');
+            const discountMembersSelector = document.getElementById('discount-members-selector');
             const resultContainer = document.getElementById('result-container');
             const resultCard = document.getElementById('result-card');
             const summaryDiv = document.getElementById('summary');
             
-            // --- Modals ---
+            // Modals
             const helpBtn = document.getElementById('help-btn');
             const helpModal = document.getElementById('help-modal');
             const closeModalBtn = document.getElementById('close-modal-btn');
             const nameEditModal = document.getElementById('name-edit-modal');
-            const nameEditTitle = document.getElementById('name-edit-title');
             const nameEditInput = document.getElementById('name-edit-input');
-            const nameEditOldName = document.getElementById('name-edit-old-name');
-            const nameEditSaveBtn = document.getElementById('name-edit-save-btn');
-            const nameEditCancelBtn = document.getElementById('name-edit-cancel-btn');
+            const nameEditOldId = document.getElementById('name-edit-old-id');
+            const nameEditCancel = document.getElementById('name-edit-cancel');
+            const nameEditSave = document.getElementById('name-edit-save');
 
-            // --- State ---
-            let participantNames = new Map([['A', '自分']]); 
+            // 参加者IDと名前のマッピング
+            // { id: 'p1', name: '自分' }, { id: 'p2', name: '参加者2' } ...
+            let participants = [];
             let paymentIdCounter = 0;
             const denominations = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
-            const STORAGE_KEY = 'warikanAppState_v3'; // (修正) データ構造変更のためv3
-            let activeNameEditCallback = null;
+            const STORAGE_KEY = 'warikanAppState_v3';
 
-            // --- Modal Control (変更なし) ---
+            // --- Modal Control (Help) ---
             helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
             closeModalBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
             helpModal.addEventListener('click', (e) => {
-                if(e.target === helpModal) helpModal.classList.add('hidden');
+                if(e.target === helpModal) {
+                    helpModal.classList.add('hidden');
+                }
             });
 
-            const showNameEditModal = (oldInternalName, currentDisplayName, title, callback) => {
-                nameEditTitle.textContent = title;
-                nameEditInput.value = (currentDisplayName === oldInternalName || currentDisplayName.startsWith('参加者')) ? '' : currentDisplayName;
-                nameEditInput.placeholder = (currentDisplayName.startsWith('参加者') ? '例: 田中' : currentDisplayName);
-                nameEditOldName.value = oldInternalName;
-                activeNameEditCallback = callback;
+            // --- Modal Control (Name Edit) ---
+            let nameEditCallback = null;
+
+            const showNameEditModal = (oldId, oldName, callback) => {
+                nameEditInput.value = oldName;
+                nameEditOldId.value = oldId;
+                nameEditCallback = callback;
                 nameEditModal.classList.remove('hidden');
                 nameEditInput.focus();
+                nameEditInput.select();
             };
 
             const hideNameEditModal = () => {
                 nameEditModal.classList.add('hidden');
-                activeNameEditCallback = null;
+                nameEditCallback = null;
             };
 
-            nameEditSaveBtn.addEventListener('click', () => {
-                const oldInternalName = nameEditOldName.value;
-                const newDisplayName = nameEditInput.value.trim();
-                
-                if (newDisplayName && activeNameEditCallback) {
-                    activeNameEditCallback(oldInternalName, newDisplayName);
+            nameEditCancel.addEventListener('click', hideNameEditModal);
+            nameEditSave.addEventListener('click', () => {
+                const newName = nameEditInput.value.trim();
+                const oldId = nameEditOldId.value;
+                if (newName && newName.length > 0 && oldId && nameEditCallback) {
+                    nameEditCallback(oldId, newName);
                 }
                 hideNameEditModal();
             });
-            nameEditCancelBtn.addEventListener('click', hideNameEditModal);
-            nameEditModal.addEventListener('click', (e) => {
-                if(e.target === nameEditModal) hideNameEditModal();
+
+            // --- Accordion Control ---
+            discountToggleBtn.addEventListener('click', () => {
+                discountContent.classList.toggle('accordion-open');
+                discountArrow.classList.toggle('rotate-180');
             });
 
-            // --- Storage (修正) ---
-            const saveState = () => {
-                try {
-                    const payments = [];
-                    paymentsContainer.querySelectorAll('.payment-item').forEach(item => {
-                        const payer = item.querySelector('.payer-select').value;
-                        const amount = item.querySelector('.amount-input').value; // (確認) 金額も保存
-                        payments.push({ id: item.id, payer, amount });
-                    });
+            // --- Participant Management ---
+            const getParticipantName = (id) => {
+                const p = participants.find(p => p.id === id);
+                return p ? p.name : '不明';
+            };
+            
+            const getParticipantById = (id) => {
+                return participants.find(p => p.id === id);
+            };
 
-                    // (修正) 半額と免除の2種類を保存
-                    const halfChecked = Array.from(discountSelector.querySelectorAll('input.half-member-cb:checked')).map(cb => cb.value);
-                    const exemptChecked = Array.from(discountSelector.querySelectorAll('input.exempt-member-cb:checked')).map(cb => cb.value);
-
-                    const state = {
-                        participantNames: Array.from(participantNames.entries()),
-                        payments,
-                        totalMembers: totalMembersInput.value,
-                        halfChecked, // (修正)
-                        exemptChecked, // (新規)
-                        isDiscountOpen: discountAccordion.open, // (新規)
-                        calcMode: document.querySelector('input[name="calculation-mode"]:checked').value
-                    };
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-                } catch (e) {
-                    console.error("Failed to save state to localStorage", e);
+            const setParticipantName = (id, newName) => {
+                const p = participants.find(p => p.id === id);
+                if (p) {
+                    p.name = newName;
+                    console.log(`Name updated: ${id} -> ${newName}`);
+                    // UI全体を更新
+                    updateAllPayerDropdowns();
+                    updateDiscountMemberSelector();
+                    saveState();
+                } else {
+                    console.warn(`Participant not found for ID: ${id}`);
                 }
             };
-
-            const loadState = () => {
-                try {
-                    const savedState = localStorage.getItem(STORAGE_KEY);
-                    if (!savedState) {
-                        addPayment(); // 初回起動時
-                        return;
-                    }
-                    
-                    const state = JSON.parse(savedState);
-
-                    if (state.participantNames) {
-                        participantNames = new Map(state.participantNames);
-                    }
-                    
-                    paymentsContainer.innerHTML = '';
-                    if (state.payments && state.payments.length > 0) {
-                        state.payments.forEach(p => {
-                            addPayment(p.payer, p.amount, p.id); // (確認) 金額も復元
-                        });
-                        paymentIdCounter = state.payments.length;
-                    } else {
-                        addPayment(); 
-                    }
-
-                    totalMembersInput.value = state.totalMembers || '';
-                    // (修正) 割引アコーディオンの開閉状態を復元
-                    discountAccordion.open = state.isDiscountOpen || false; 
-                    // (修正) 半額と免除のチェック状態を復元
-                    updateDiscountSelector(new Set(state.halfChecked || []), new Set(state.exemptChecked || []));
-
-                    document.querySelector(`input[name="calculation-mode"][value="${state.calcMode || 'simple'}"]`).checked = true;
-
-                } catch (e) {
-                    console.error("Failed to load state from localStorage", e);
-                    localStorage.removeItem(STORAGE_KEY); // (修正) 壊れたデータを削除
-                    addPayment(); // ロード失敗時
-                }
+            
+            const createNewParticipant = (name) => {
+                const newId = `p${Date.now()}`; // 衝突しないユニークID
+                const newP = { id: newId, name: name };
+                participants.push(newP);
+                console.log(`New participant created: ${newId} (${name})`);
+                return newP;
             };
 
-            // --- Participant & Naming (変更なし) ---
-            const getParticipantName = (internalName) => {
-                return participantNames.get(internalName) || internalName;
+
+            const showError = (message) => {
+                resultContainer.classList.remove('hidden');
+                summaryDiv.innerHTML = '';
+                resultCard.innerHTML = `<p class="text-center text-red-600 font-semibold p-4">${message}</p>`;
+                resultContainer.scrollIntoView({ behavior: 'smooth' });
             };
 
-            const setParticipantName = (internalName, newDisplayName) => {
-                if (!newDisplayName) return;
-                
-                for (const [key, value] of participantNames.entries()) {
-                    if (value === newDisplayName && key !== internalName) {
-                        alert("この名前は既に使用されています。"); 
-                        return;
-                    }
-                }
-                
-                participantNames.set(internalName, newDisplayName);
-                updateAllPayerDropdowns();
-                updateDiscountSelector();
-                saveState();
-            };
-
-            const createPayerDropdown = (selectedPayer) => {
+            const createPayerDropdown = (selectedPayerId) => {
                 const select = document.createElement('select');
                 select.className = 'payer-select w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 text-base';
                 
-                participantNames.forEach((displayName, internalName) => {
+                // 支払者に限定せず、全参加者をドロップダウンに表示
+                participants.forEach(p => {
                     const option = document.createElement('option');
-                    option.value = internalName;
-                    option.textContent = displayName;
-                    if (internalName === selectedPayer) option.selected = true;
+                    option.value = p.id;
+                    option.textContent = p.name;
+                    if (p.id === selectedPayerId) option.selected = true;
                     select.appendChild(option);
                 });
 
@@ -347,10 +321,10 @@
                     const currentValue = select.value;
                     select.innerHTML = ''; 
                     
-                    participantNames.forEach((displayName, internalName) => {
+                    participants.forEach(p => {
                         const option = document.createElement('option');
-                        option.value = internalName;
-                        option.textContent = displayName;
+                        option.value = p.id;
+                        option.textContent = p.name;
                         select.appendChild(option);
                     });
                     const newOption = document.createElement('option');
@@ -358,190 +332,370 @@
                     newOption.textContent = '新しい支払い者を追加...';
                     select.appendChild(newOption);
 
-                    if (participantNames.has(currentValue)) {
+                    // IDが参加者リストに存在するかで判定
+                    if (participants.some(p => p.id === currentValue)) {
                         select.value = currentValue;
-                    } else if (participantNames.size > 0) {
-                        select.value = participantNames.keys().next().value;
+                    } else {
+                        select.value = participants.length > 0 ? participants[0].id : 'new_payer';
                     }
                 });
             };
 
-            // --- (修正) Discount Selector Logic ---
-            const updateDiscountSelector = (preCheckedHalf = new Set(), preCheckedExempt = new Set()) => {
-                // 現在のチェック状態を保持
-                const currentHalfChecked = new Set(
-                    Array.from(discountSelector.querySelectorAll('input.half-member-cb:checked')).map(cb => cb.value)
-                );
-                const currentExemptChecked = new Set(
-                    Array.from(discountSelector.querySelectorAll('input.exempt-member-cb:checked')).map(cb => cb.value)
-                );
+            const updateDiscountMemberSelector = () => {
+                // 現在のチェック状態を保存
+                const currentDiscounts = new Map();
+                discountMembersSelector.querySelectorAll('input[type="radio"]').forEach(radio => {
+                    if (radio.checked) {
+                        currentDiscounts.set(radio.name.replace('discount-', ''), radio.value);
+                    }
+                });
                 
-                const namesToCheckHalf = new Set([...currentHalfChecked, ...preCheckedHalf]);
-                const namesToCheckExempt = new Set([...currentExemptChecked, ...preCheckedExempt]);
-
-                discountSelector.innerHTML = '';
+                discountMembersSelector.innerHTML = '';
                 const totalMembers = parseInt(totalMembersInput.value) || 0;
                 
-                const currentPayers = [...new Set(Array.from(document.querySelectorAll('.payer-select')).map(s => s.value).filter(v => v !== 'new_payer'))];
+                // 支払い者リストから現在の参加者IDを取得
+                const currentPayerIds = [...new Set(Array.from(document.querySelectorAll('.payer-select')).map(s => s.value).filter(v => v !== 'new_payer'))];
                 
-                const allParticipants = new Set(currentPayers);
-                const nonPayerCount = totalMembers - allParticipants.size;
+                // participants 配列を更新
+                const allParticipantIds = new Set(currentPayerIds);
+                participants.forEach(p => allParticipantIds.add(p.id));
+
+                const nonPayerCount = totalMembers - allParticipantIds.size;
                 
-                if (nonPayerCount >= 0) {
-                    for (let i = 1; i <= nonPayerCount; i++) {
-                        const internalName = `参加者${i}`;
-                        if (!participantNames.has(internalName)) {
-                            participantNames.set(internalName, internalName);
+                if (nonPayerCount > 0) {
+                    // 足りない分だけ「参加者X」を追加
+                    let participantCounter = 1;
+                    // 既存の「参加者X」の名前を探す
+                    participants.forEach(p => {
+                        const match = p.name.match(/^参加者(\d+)$/);
+                        if (match) {
+                            const num = parseInt(match[1]);
+                            if (num >= participantCounter) {
+                                participantCounter = num + 1;
+                            }
                         }
-                        allParticipants.add(internalName);
+                    });
+
+                    for (let i = 0; i < nonPayerCount; i++) {
+                        const newP = createNewParticipant(`参加者${participantCounter + i}`);
+                        allParticipantIds.add(newP.id);
+                    }
+                } else if (nonPayerCount < 0) {
+                    // 人数が減った場合、支払いに使われていない「参加者X」を削除
+                    const participantIdsInUse = new Set(currentPayerIds);
+                    participants = participants.filter(p => {
+                        // 支払いに使われているか、または「参加者X」形式でない名前（＝手動で名前をつけた人）は保持
+                        const isInUse = participantIdsInUse.has(p.id);
+                        const isDefaultName = /^参加者(\d+)$/.test(p.name);
+                        if (isInUse || !isDefaultName) {
+                            return true;
+                        }
+                        // 支払いに使われておらず、デフォルト名の人は削除候補
+                        return false; 
+                    });
+                    
+                    // 削除してもまだ人数が多い場合、支払いに使われていない人を（名前に関わらず）削除
+                    let diff = participants.length - totalMembers;
+                    if (diff > 0) {
+                         participants = participants.filter(p => {
+                            if (diff > 0 && !participantIdsInUse.has(p.id)) {
+                                diff--;
+                                return false; // 削除
+                            }
+                            return true; // 保持
+                        });
                     }
                 }
-                
-                [...allParticipants].sort((a, b) => getParticipantName(a).localeCompare(getParticipantName(b))).forEach(internalName => {
-                    const displayName = getParticipantName(internalName);
-                    const div = document.createElement('div');
-                    // (修正) レイアウト変更
-                    div.className = 'flex items-center justify-between gap-2 p-2 bg-white rounded-md border border-gray-200';
-                    const checkboxIdHalf = `half-checkbox-${internalName}`;
-                    const checkboxIdExempt = `exempt-checkbox-${internalName}`;
-                    
-                    // (修正) 相互排他ロジックのため、チェック状態を確定
-                    let isCheckedHalf = namesToCheckHalf.has(internalName);
-                    let isCheckedExempt = namesToCheckExempt.has(internalName);
-                    if(isCheckedHalf && isCheckedExempt) { isCheckedExempt = false; } // 半額を優先
 
-                    div.innerHTML = `
-                        <div class="flex items-center gap-2">
-                            <label for="${checkboxIdHalf}" class="text-sm text-gray-700 flex-grow">${displayName}</label>
-                            <button type="button" class="edit-participant-name-btn flex-shrink-0 text-gray-500 hover:text-indigo-600" data-name="${internalName}">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                            </button>
+                // 参加者リストをソートして表示
+                const sortedParticipants = [...participants].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+                
+                sortedParticipants.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between gap-2 p-3 bg-gray-100 rounded-md';
+                    
+                    const nameAndEdit = document.createElement('div');
+                    nameAndEdit.className = 'flex items-center gap-2';
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `discount-none-${p.id}`;
+                    label.className = 'text-sm text-gray-700 font-medium';
+                    label.textContent = p.name;
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = 'edit-participant-btn text-gray-400 hover:text-indigo-600 transition';
+                    editBtn.dataset.participantId = p.id;
+                    editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>`;
+                    editBtn.addEventListener('click', (e) => {
+                        const id = e.currentTarget.dataset.participantId;
+                        const participant = getParticipantById(id);
+                        if (participant) {
+                            showNameEditModal(participant.id, participant.name, (oldId, newName) => {
+                                setParticipantName(oldId, newName);
+                            });
+                        }
+                    });
+
+                    nameAndEdit.appendChild(label);
+                    nameAndEdit.appendChild(editBtn);
+                    
+                    // (修正) 割引オプション (半額・免除)
+                    const optionsDiv = document.createElement('div');
+                    optionsDiv.className = 'flex items-center gap-3';
+                    
+                    const radioName = `discount-${p.id}`;
+                    const discountType = currentDiscounts.get(p.id) || 'none';
+
+                    optionsDiv.innerHTML = `
+                        <div class="flex items-center">
+                            <input type="radio" id="discount-none-${p.id}" name="${radioName}" value="none" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" ${discountType === 'none' ? 'checked' : ''}>
+                            <label for="discount-none-${p.id}" class="ml-1 text-xs text-gray-600">なし</label>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <input type="checkbox" id="${checkboxIdHalf}" value="${internalName}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 half-member-cb" ${isCheckedHalf ? 'checked' : ''}>
-                            <label for="${checkboxIdHalf}" class="text-xs text-gray-600">半額</label>
-                            
-                            <input type="checkbox" id="${checkboxIdExempt}" value="${internalName}" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500 exempt-member-cb" ${isCheckedExempt ? 'checked' : ''}>
-                            <label for="${checkboxIdExempt}" class="text-xs text-gray-600">免除</label>
+                        <div class="flex items-center">
+                            <input type="radio" id="discount-half-${p.id}" name="${radioName}" value="half" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" ${discountType === 'half' ? 'checked' : ''}>
+                            <label for="discount-half-${p.id}" class="ml-1 text-xs text-gray-600">半額</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="discount-zero-${p.id}" name="${radioName}" value="zero" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" ${discountType === 'zero' ? 'checked' : ''}>
+                            <label for="discount-zero-${p.id}" class="ml-1 text-xs text-gray-600">免除</label>
                         </div>
                     `;
-                    discountSelector.appendChild(div);
-                });
+                    
+                    optionsDiv.addEventListener('change', saveState); // ラジオボタン変更時にも保存
 
-                // (修正) イベントリスナーを再設定 (相互排他ロジック含む)
-                discountSelector.querySelectorAll('.edit-participant-name-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const internalName = e.currentTarget.dataset.name;
-                        const currentDisplayName = getParticipantName(internalName);
-                        showNameEditModal(internalName, currentDisplayName, '名前を編集', setParticipantName);
-                    });
-                });
-
-                discountSelector.querySelectorAll('.half-member-cb').forEach(cb => {
-                    cb.addEventListener('change', (e) => {
-                        if (e.target.checked) {
-                            // (新規) 免除のチェックを外す
-                            const exemptCb = e.target.closest('.flex.items-center.gap-3').querySelector('.exempt-member-cb');
-                            if (exemptCb) exemptCb.checked = false;
-                        }
-                        saveState();
-                    });
+                    div.appendChild(nameAndEdit);
+                    div.appendChild(optionsDiv);
+                    discountMembersSelector.appendChild(div);
                 });
                 
-                discountSelector.querySelectorAll('.exempt-member-cb').forEach(cb => {
-                    cb.addEventListener('change', (e) => {
-                        if (e.target.checked) {
-                            // (新規) 半額のチェックを外す
-                            const halfCb = e.target.closest('.flex.items-center.gap-3').querySelector('.half-member-cb');
-                            if (halfCb) halfCb.checked = false;
-                        }
-                        saveState();
-                    });
-                });
+                // 支払いドロップダウンも同期
+                updateAllPayerDropdowns();
+                saveState();
             };
 
-            // --- Payment Item Logic (修正) ---
-            const addPayment = (payer = 'A', amount = '', id = null) => {
+            const addPayment = (payment = null) => {
                 paymentIdCounter++;
-                const paymentId = id || `payment-${paymentIdCounter}`;
+                const paymentId = `payment-${paymentIdCounter}`;
 
                 const paymentEl = document.createElement('div');
                 paymentEl.className = 'payment-item flex items-center gap-2';
                 paymentEl.id = paymentId;
                 
-                const selectEl = createPayerDropdown(payer);
-                const amountInput = document.createElement('input');
-                amountInput.type = 'number';
-                amountInput.className = "amount-input w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 text-base";
-                amountInput.placeholder = "金額 (円)";
-                amountInput.value = amount; // (確認) 金額をセット
+                // 支払い者ID（p1, p2など）を渡す
+                const defaultPayerId = (payment && payment.payerId) ? payment.payerId : (participants.length > 0 ? participants[0].id : null);
+                const selectEl = createPayerDropdown(defaultPayerId);
 
                 paymentEl.innerHTML = `
-                    <div class="flex-grow flex items-center gap-2">
+                    <div class="w-2/5 relative">
                         ${selectEl.outerHTML}
-                        <button type="button" class="edit-payer-name-btn flex-shrink-0 text-gray-500 hover:text-indigo-600 p-2" data-select-id="${paymentId}-select">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                        </button>
                     </div>
+                    <!-- (修正) 編集ボタンを追加 -->
+                    <button type="button" class="edit-payer-btn flex-shrink-0 text-gray-400 hover:text-indigo-600 transition">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>
+                    </button>
                     <div class="flex-grow">
-                        ${amountInput.outerHTML}
+                        <input type="number" class="amount-input w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 text-base" placeholder="金額 (円)" value="${payment && payment.amount ? payment.amount : ''}">
                     </div>
-                    <button type="button" class="remove-payment-btn flex-shrink-0 text-gray-400 hover:text-red-500" data-remove="${paymentId}">
+                    <button type="button" class="remove-payment-btn flex-shrink-0 text-gray-400 hover:text-red-500 transition" data-remove="${paymentId}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
                     </button>
                 `;
                 paymentsContainer.appendChild(paymentEl);
 
-                // イベントリスナーの動的設定
-                const payerSelect = paymentEl.querySelector('.payer-select');
-                payerSelect.id = `${paymentId}-select`;
+                // --- Event Listeners for new payment item ---
 
+                const payerSelect = paymentEl.querySelector('.payer-select');
+                
                 payerSelect.addEventListener('change', (e) => {
                     if (e.target.value === 'new_payer') {
-                        const newPayerInternalName = String.fromCharCode(65 + participantNames.size);
-                        showNameEditModal(newPayerInternalName, '', '新しい支払い者を追加', (internalName, newDisplayName) => {
-                            participantNames.set(internalName, newDisplayName);
+                        // 新しい支払い者を追加
+                        showNameEditModal('', '', (oldId, newName) => {
+                            const newP = createNewParticipant(newName);
+                            // ドロップダウンを更新
                             updateAllPayerDropdowns();
-                            e.target.value = newPayerInternalName;
-                            updateDiscountSelector(); // (修正)
+                            // 割引リストも更新
+                            updateDiscountMemberSelector();
+                            // 今のドロップダウンの選択肢を新しい参加者に変更
+                            e.target.value = newP.id;
                             saveState();
                         });
                     } else {
-                        updateDiscountSelector(); // (修正)
-                        saveState();
+                         saveState(); // 既存の支払い者を選んだ場合も保存
                     }
                 });
                 
-                paymentEl.querySelector('.edit-payer-name-btn').addEventListener('click', (e) => {
-                    const internalName = payerSelect.value;
-                    if(internalName === 'new_payer') return;
-                    const currentDisplayName = getParticipantName(internalName);
-                    showNameEditModal(internalName, currentDisplayName, '支払い者を編集', setParticipantName);
+                // (追加) 支払い者リスト横の編集ボタン
+                paymentEl.querySelector('.edit-payer-btn').addEventListener('click', (e) => {
+                     const selectedId = payerSelect.value;
+                     if (selectedId && selectedId !== 'new_payer') {
+                         const participant = getParticipantById(selectedId);
+                         if(participant) {
+                            showNameEditModal(participant.id, participant.name, (oldId, newName) => {
+                                setParticipantName(oldId, newName);
+                            });
+                         }
+                     }
                 });
+
 
                 paymentEl.querySelector('.remove-payment-btn').addEventListener('click', (e) => {
                     const idToRemove = e.currentTarget.getAttribute('data-remove');
                     document.getElementById(idToRemove).remove();
-                    updateDiscountSelector(); // (修正)
+                    // 支払い者がいなくなったかチェック
+                    updateDiscountMemberSelector(); // 支払い者が0になったら参加者リストからも消える可能性があるため
                     saveState();
                 });
                 
-                paymentEl.querySelector('.amount-input').addEventListener('input', saveState); // (確認) 金額入力時に保存
+                paymentEl.querySelector('.amount-input').addEventListener('input', saveState);
 
-                updateDiscountSelector(); // (修正)
+                // 初期読み込み時以外は、割引セレクターを更新
+                if (payment === null) {
+                    updateDiscountMemberSelector();
+                    saveState();
+                }
             };
             
-            addPaymentBtn.addEventListener('click', () => addPayment(participantNames.keys().next().value));
+            // --- State Management (localStorage) ---
+            const saveState = () => {
+                try {
+                    const payments = [];
+                    paymentsContainer.querySelectorAll('.payment-item').forEach(item => {
+                        const payerId = item.querySelector('.payer-select').value;
+                        const amount = parseFloat(item.querySelector('.amount-input').value);
+                        if (payerId !== 'new_payer' && !isNaN(amount) && amount > 0) {
+                            payments.push({ payerId, amount });
+                        }
+                    });
+                    
+                    const discounts = {};
+                    discountMembersSelector.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                        const id = radio.name.replace('discount-', '');
+                        discounts[id] = radio.value; // 'none', 'half', 'zero'
+                    });
+
+                    const state = {
+                        participants: participants, // 参加者リスト（IDと名前）
+                        payments: payments, // 支払いリスト
+                        totalMembers: totalMembersInput.value,
+                        discounts: discounts, // 割引状態
+                        calcMode: document.querySelector('input[name="calculation-mode"]:checked').value
+                    };
+                    
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                    console.log('State saved.');
+
+                } catch (e) {
+                    console.error("Failed to save state:", e);
+                }
+            };
+
+            const loadState = () => {
+                let state;
+                try {
+                    const savedState = localStorage.getItem(STORAGE_KEY);
+                    if (!savedState) {
+                        console.log('No saved state found. Initializing.');
+                        // (修正) デフォルト名を「自分」に
+                        createNewParticipant('自分');
+                        addPayment(); // 空の支払い項目を1つ追加
+                        updateDiscountMemberSelector(); // 人数(1)に基づいて更新
+                        return; // 初期化終了
+                    }
+                    
+                    state = JSON.parse(savedState);
+                    console.log('State loaded:', state);
+
+                    if (!state || !state.participants) {
+                         // v3より古いデータ構造、またはデータ破損
+                        throw new Error('Invalid state structure.');
+                    }
+
+                } catch (e) {
+                    console.warn('Failed to parse state or invalid state structure. Resetting state.', e);
+                    localStorage.removeItem(STORAGE_KEY);
+                    // (修正) デフォルト名を「自分」に
+                    createNewParticipant('自分');
+                    addPayment();
+                    updateDiscountMemberSelector();
+                    return;
+                }
+
+                // ---------------------------------
+                // 状態の復元
+                // ---------------------------------
+                
+                // 1. 参加者リストの復元
+                if (state.participants && Array.isArray(state.participants)) {
+                    participants = state.participants;
+                } else {
+                    // 参加者リストがない（古い）場合は、支払い者から推測
+                    participants = [];
+                    // ... （ただしv3ではparticipantsは必須のはず）
+                }
+
+                // 2. 合計人数の復元
+                if (state.totalMembers) {
+                    totalMembersInput.value = state.totalMembers;
+                }
+                
+                // 3. 割引セレクターの生成 (人数と参加者リストに基づいて)
+                // この時点で discounts (state.discounts) はまだ適用しない
+                updateDiscountMemberSelector();
+
+                // 4. 支払いリストの復元
+                paymentsContainer.innerHTML = ''; // コンテナをクリア
+                if (state.payments && state.payments.length > 0) {
+                    state.payments.forEach(p => {
+                        // 支払い者IDが存在するか確認
+                        if (participants.some(pa => pa.id === p.payerId)) {
+                             addPayment(p); // 支払い項目を復元
+                        } else {
+                            console.warn(`Saved payment references non-existent participant ID ${p.payerId}. Skipping.`);
+                        }
+                    });
+                } else if (participants.length > 0) {
+                    // 支払いが0件でも、参加者がいれば空のフォームを1つ出す
+                     addPayment();
+                } else {
+                    // 参加者も支払いも0件（＝完全な初期状態）
+                    createNewParticipant('自分');
+                    addPayment();
+                }
+                
+                // 5. 割引状態の復元 (セレクターが生成された後に実行)
+                if (state.discounts) {
+                    Object.keys(state.discounts).forEach(participantId => {
+                        const radio = document.querySelector(`input[name="discount-${participantId}"][value="${state.discounts[participantId]}"]`);
+                        if (radio) {
+                            radio.checked = true;
+                        }
+                    });
+                }
+                
+                // 6. 計算モードの復元
+                if (state.calcMode) {
+                    const modeRadio = document.getElementById(`mode-${state.calcMode}`);
+                    if(modeRadio) modeRadio.checked = true;
+                }
+            };
+            
+
+            // --- Event Listeners (Global) ---
+            addPaymentBtn.addEventListener('click', () => addPayment());
             totalMembersInput.addEventListener('input', () => {
-                updateDiscountSelector(); // (修正)
-                saveState();
+                updateDiscountMemberSelector();
+                // saveState(); (updateDiscountMemberSelector内で呼ばれる)
             });
-            discountAccordion.addEventListener('toggle', saveState); // (新規) アコーディオン開閉を保存
+            
+            // 計算モードのラジオボタンにも保存イベントを追加
             document.querySelectorAll('input[name="calculation-mode"]').forEach(radio => {
                 radio.addEventListener('change', saveState);
             });
-            
-            // --- Calculation Logic (変更なし) ---
+
+
+            // --- Calculation Logic ---
+
             const getBreakdown = (value) => {
                 let remaining = value;
                 const breakdown = [];
@@ -554,9 +708,11 @@
                 }
                 return breakdown;
             };
+
             const countPiecesFromBreakdown = (breakdown) => {
                 return breakdown.reduce((sum, item) => sum + item.count, 0);
             };
+
              const getOptimalPayment = (amount) => {
                 const directBreakdown = getBreakdown(amount);
                 let bestOption = {
@@ -564,25 +720,33 @@
                     payment: amount,
                     change: 0
                 };
+
                 const candidates = new Set();
                 if (amount > 0) {
                     if (amount % 100 !== 0) candidates.add(Math.ceil(amount / 100) * 100);
                     if (amount % 500 !== 0) candidates.add(Math.ceil(amount / 500) * 500);
                     if (amount % 1000 !== 0) candidates.add(Math.ceil(amount / 1000) * 1000);
+                    
                     const nextThousand = Math.ceil(amount/1000) * 1000;
                     if(nextThousand < 10000 && nextThousand > 0) candidates.add(nextThousand + 1000);
+
                     denominations.forEach(d => {
                         if (d > amount) candidates.add(d);
                     });
                 }
+                
                 candidates.forEach(candidateAmount => {
                     if(candidateAmount <= amount) return;
+
                     const paymentBreakdown = getBreakdown(candidateAmount);
                     const paymentCount = countPiecesFromBreakdown(paymentBreakdown);
+
                     const changeAmount = candidateAmount - amount;
                     const changeBreakdown = getBreakdown(changeAmount);
                     const changeCount = countPiecesFromBreakdown(changeBreakdown);
+
                     const totalCount = paymentCount + changeCount;
+
                     if (totalCount < bestOption.count) {
                         bestOption = {
                             count: totalCount,
@@ -591,6 +755,7 @@
                         };
                     }
                 });
+                 
                 let text;
                 if (bestOption.change > 0) {
                      text = `【お釣り】 ${bestOption.payment.toLocaleString()}円で払い、${bestOption.change.toLocaleString()}円のお釣りをもらう`
@@ -599,6 +764,7 @@
                 }
                 return { count: bestOption.count, text };
             };
+            
             const calculateDirectSettlementCost = (balances) => {
                 let cost = 0;
                 const tempBalances = new Map(balances);
@@ -608,8 +774,10 @@
                     if(amount > 0.5) creditors.push({person, amount: Math.round(amount)});
                     else if (amount < -0.5) debtors.push({person, amount: -Math.round(amount)});
                 });
+                
                 creditors.sort((a,b) => b.amount - a.amount);
                 debtors.sort((a,b) => b.amount - a.amount);
+
                 let c = 0, d = 0;
                 while(c < creditors.length && d < debtors.length){
                     const transfer = Math.min(creditors[c].amount, debtors[d].amount);
@@ -621,40 +789,51 @@
                 }
                 return cost;
             };
+
             const solveCashMinimization = (initialBalances) => {
                 let transactions = [];
                 const tempBalances = new Map(initialBalances);
+
                 while (true) {
                     const currentCost = calculateDirectSettlementCost(tempBalances);
                     let bestReduction = 0;
                     let bestMove = null;
+
                     const debtors = [];
                     tempBalances.forEach((amount, person) => {
                        if (amount < -0.5) debtors.push(person);
                     });
+                    
                     const participants = Array.from(tempBalances.keys());
+
                     for (const from of debtors) {
                         for (const to of participants) {
                             if (from === to) continue;
+
                             const hypotheticalBalances = new Map(tempBalances);
                             const amountToPay = -Math.round(hypotheticalBalances.get(from));
+                            
                             hypotheticalBalances.set(from, hypotheticalBalances.get(from) + amountToPay);
-                            hypotheticalBalances.set(to, (hypotheticalBalances.get(to) || 0) - amountToPay);
+                            hypotheticalBalances.set(to, hypotheticalBalances.get(to) - amountToPay);
+
                             const newCost = calculateDirectSettlementCost(hypotheticalBalances);
                             const moveCost = getOptimalPayment(amountToPay).count;
                             const totalNewCost = moveCost + newCost;
+                            
                             const reduction = currentCost - totalNewCost;
+
                             if (reduction > bestReduction) {
                                 bestReduction = reduction;
                                 bestMove = { from, to, amount: amountToPay };
                             }
                         }
                     }
+
                     if (bestMove) {
                         transactions.push(bestMove);
                         const { from, to, amount } = bestMove;
                         tempBalances.set(from, tempBalances.get(from) + amount);
-                        tempBalances.set(to, (tempBalances.get(to) || 0) - amount);
+                        tempBalances.set(to, tempBalances.get(to) - amount);
                     } else {
                         const finalCreditors = [], finalDebtors = [];
                         tempBalances.forEach((amount, person) => {
@@ -663,6 +842,7 @@
                         });
                          finalCreditors.sort((a, b) => b.amount - a.amount);
                         finalDebtors.sort((a, b) => b.amount - a.amount);
+
                         let c = 0, d = 0;
                         while(c < finalCreditors.length && d < finalDebtors.length){
                             const transfer = Math.min(finalCreditors[c].amount, finalDebtors[d].amount);
@@ -675,20 +855,15 @@
                         break;
                     }
                 }
+                
                 let totalCoinCost = 0;
                 transactions.forEach(t => {
                     totalCoinCost += getOptimalPayment(t.amount).count;
                 });
+
                 return { transactions, totalCoinCost };
             };
-            const showError = (message) => {
-                resultContainer.classList.remove('hidden');
-                summaryDiv.innerHTML = '';
-                resultCard.innerHTML = `<p class="text-center text-red-600 font-semibold p-4">${message}</p>`;
-                resultContainer.scrollIntoView({ behavior: 'smooth' });
-            };
 
-            // --- Calculate Button Event (修正) ---
             calculateBtn.addEventListener('click', () => {
                 const totalMembers = parseInt(totalMembersInput.value);
                 
@@ -696,166 +871,147 @@
                     showError('合計人数を正しく入力してください。');
                     return;
                 }
+                
+                // (修正) participants が人数と一致しているか確認
+                if (totalMembers !== participants.length) {
+                    showError('合計人数と参加者リストの数が一致しません。「割引設定」で参加者リストを更新してください。');
+                    // updateDiscountMemberSelector(); // 自動更新も可能だが、一旦エラー表示
+                    return;
+                }
 
                 const paymentItems = paymentsContainer.querySelectorAll('.payment-item');
-                const aggregatedPayments = new Map();
+                const aggregatedPayments = new Map(); // K: participantId, V: amount
                 let totalPayment = 0;
 
                 paymentItems.forEach(item => {
-                    const payer = item.querySelector('.payer-select').value;
+                    const payerId = item.querySelector('.payer-select').value;
                     const amount = parseFloat(item.querySelector('.amount-input').value);
-                    if (payer !== 'new_payer' && !isNaN(amount) && amount > 0) {
-                        aggregatedPayments.set(payer, (aggregatedPayments.get(payer) || 0) + amount);
+                    if (payerId !== 'new_payer' && !isNaN(amount) && amount > 0) {
+                        aggregatedPayments.set(payerId, (aggregatedPayments.get(payerId) || 0) + amount);
                         totalPayment += amount;
                     }
                 });
 
-                if (aggregatedPayments.size === 0) {
+                if (aggregatedPayments.size === 0 && totalPayment === 0) {
                     showError('支払いを1つ以上入力してください。');
                     return;
                 }
-
-                // (修正) 半額と免除の両方を取得
-                const halfPriceMembers = new Set(
-                    Array.from(discountSelector.querySelectorAll('input.half-member-cb:checked')).map(cb => cb.value)
-                );
-                const exemptPriceMembers = new Set(
-                    Array.from(discountSelector.querySelectorAll('input.exempt-member-cb:checked')).map(cb => cb.value)
-                );
                 
-                const totalHalfMembers = halfPriceMembers.size;
-                const totalExemptMembers = exemptPriceMembers.size;
+                // (修正) 割引設定の取得
+                const discountMap = new Map(); // K: participantId, V: 'none' | 'half' | 'zero'
+                discountMembersSelector.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                    const id = radio.name.replace('discount-', '');
+                    discountMap.set(id, radio.value);
+                });
                 
-                // (修正) 全額払いの人数
-                const fullMembers = totalMembers - totalHalfMembers - totalExemptMembers;
+                let totalHalfMembers = 0;
+                let totalZeroMembers = 0;
+                
+                participants.forEach(p => {
+                    const type = discountMap.get(p.id) || 'none';
+                    if (type === 'half') totalHalfMembers++;
+                    else if (type === 'zero') totalZeroMembers++;
+                });
 
-                // (修正) 割り勘の単位数
+                const fullMembers = totalMembers - totalHalfMembers - totalZeroMembers;
                 const totalUnits = fullMembers + totalHalfMembers * 0.5;
 
-                if (totalUnits <= 0 && totalPayment > 0) {
-                    showError('割り勘の対象者がいません（全員免除など）。');
-                    return;
+                if (totalUnits <= 0) {
+                    if (totalPayment > 0) {
+                        showError('割り勘の対象者（全額負担の人）が1人もいません。');
+                        return;
+                    }
+                    // 全員免除で支払い0円ならOK
                 }
                 
-                const payments = Array.from(aggregatedPayments, ([payer, amount]) => ({ payer, amount }));
-                
-                // (修正) 0除算を回避
-                const baseFullCost = totalUnits > 0 ? Math.floor(totalPayment / totalUnits) : 0;
-                const baseHalfCost = totalUnits > 0 ? Math.floor(baseFullCost * 0.5) : 0;
+                const baseFullCost = (totalUnits > 0) ? Math.floor(totalPayment / totalUnits) : 0;
+                const baseHalfCost = Math.floor(baseFullCost * 0.5);
+                const baseZeroCost = 0;
 
-                // (修正) 全額免除(0円)も含めて計算
-                const calculatedTotal = baseFullCost * fullMembers + baseHalfCost * totalHalfMembers;
+                const calculatedTotal = (baseFullCost * fullMembers) + (baseHalfCost * totalHalfMembers);
                 let remainder = totalPayment - calculatedTotal;
 
-                const finalPayerNames = Array.from(aggregatedPayments.keys());
-                const allMemberNames = new Set(finalPayerNames);
-                const nonPayerCount = totalMembers - finalPayerNames.length;
-                if (nonPayerCount > 0) {
-                    for(let i=1; i<=nonPayerCount; i++) {
-                        allMemberNames.add(`参加者${i}`);
-                    }
-                }
-
-                if (totalMembers !== allMemberNames.size) {
-                    updateDiscountSelector(); // (修正)
-                    showError('人数が一致しません。「割引設定」のリストが最新か確認してください。');
-                    return;
-                }
-
-                const memberCosts = new Map();
-                allMemberNames.forEach((name) => {
+                const memberCosts = new Map(); // K: participantId, V: cost
+                participants.forEach((p) => {
+                    const type = discountMap.get(p.id) || 'none';
                     let cost = 0;
-                    // (修正) 免除、半額、全額の順でコストを決定
-                    if (exemptPriceMembers.has(name)) {
-                        cost = 0;
-                    } else if (halfPriceMembers.has(name)) {
-                        cost = baseHalfCost;
-                    } else {
-                        cost = baseFullCost;
-                    }
-                    memberCosts.set(name, cost);
+                    if (type === 'half') cost = baseHalfCost;
+                    else if (type === 'zero') cost = baseZeroCost;
+                    else cost = baseFullCost;
+                    memberCosts.set(p.id, cost);
                 });
                 
                 const calcMode = document.querySelector('input[name="calculation-mode"]:checked').value;
 
-                // (修正) 端数負担のロジック (免除者には負担させない)
-                const remainderTargetsPool = [...allMemberNames].filter(name => !exemptPriceMembers.has(name));
+                if (remainder > 0) {
+                    // 端数処理
+                    // (修正) 免除(zero)の人を除外して端数を割り当てる
+                    const remainderTargets = participants.filter(p => (discountMap.get(p.id) || 'none') !== 'zero');
 
-                if (calcMode === 'cash' && remainder > 0) {
-                    for (let i = 0; i < remainder; i++) {
-                        let bestPerson = null;
-                        let minCost = Infinity;
+                    if (remainderTargets.length === 0) {
+                        // (起こり得ないはずだが) 全員免除なのに端数が出た場合
+                        console.warn("Remainder exists but no one to assign to.");
+                    } else if (calcMode === 'cash') {
+                         for (let i = 0; i < remainder; i++) {
+                            let bestPersonId = null;
+                            let minCost = Infinity;
 
-                        // (修正) 免除者以外から端数負担者を選ぶ
-                        for (const person of remainderTargetsPool) {
-                            const hypotheticalCosts = new Map(memberCosts);
-                            hypotheticalCosts.set(person, hypotheticalCosts.get(person) + 1);
+                            for (const p of remainderTargets) {
+                                const hypotheticalCosts = new Map(memberCosts);
+                                hypotheticalCosts.set(p.id, hypotheticalCosts.get(p.id) + 1);
 
-                            const hypotheticalBalances = new Map();
-                            hypotheticalCosts.forEach((cost, name) => { hypotheticalBalances.set(name, -cost); });
-                            payments.forEach(p => { hypotheticalBalances.set(p.payer, (hypotheticalBalances.get(p.payer) || 0) + p.amount); });
-                            
-                            const { totalCoinCost } = solveCashMinimization(hypotheticalBalances);
+                                const hypotheticalBalances = new Map();
+                                hypotheticalCosts.forEach((cost, id) => { hypotheticalBalances.set(id, -cost); });
+                                aggregatedPayments.forEach((amount, id) => { hypotheticalBalances.set(id, (hypotheticalBalances.get(id) || 0) + amount); });
+                                
+                                const { totalCoinCost } = solveCashMinimization(hypotheticalBalances);
 
-                            if (totalCoinCost < minCost) {
-                                minCost = totalCoinCost;
-                                bestPerson = person;
+                                if (totalCoinCost < minCost) {
+                                    minCost = totalCoinCost;
+                                    bestPersonId = p.id;
+                                }
                             }
+                             if(bestPersonId) {
+                                 memberCosts.set(bestPersonId, memberCosts.get(bestPersonId) + 1);
+                             } else {
+                                 memberCosts.set(remainderTargets[0].id, memberCosts.get(remainderTargets[0].id) + 1);
+                             }
                         }
-                         if(bestPerson) {
-                             memberCosts.set(bestPerson, memberCosts.get(bestPerson) + 1);
-                         } else if (remainderTargetsPool.length > 0) { // (修正) 負担できる人がいれば
-                             const firstPerson = remainderTargetsPool[0];
-                             memberCosts.set(firstPerson, memberCosts.get(firstPerson) + 1);
-                         }
-                    }
-                } else if (remainder > 0) {
-                    // (修正) 免除者以外から端数負担者を選ぶ
-                    const nonPayers = remainderTargetsPool.filter(name => !finalPayerNames.includes(name));
-                    let remainderTargets = [];
-                    if (nonPayers.length > 0) {
-                        remainderTargets = nonPayers;
                     } else {
-                        // (修正) 支払者リストも、免除者を除いたプールからソート
-                        const sortedPayers = payments
-                            .filter(p => remainderTargetsPool.includes(p.payer))
-                            .sort((a, b) => a.amount - b.amount);
-                        remainderTargets = sortedPayers.map(p => p.payer);
-                    }
-                    
-                    if(remainderTargets.length > 0) {
+                        // シンプル計算: 支払いがない人、または支払いが少ない人から順に割り当て
+                        // (修正) 免除者を除いたリストでソート
+                        const sortedTargets = remainderTargets.sort((a, b) => {
+                            const paymentA = aggregatedPayments.get(a.id) || 0;
+                            const paymentB = aggregatedPayments.get(b.id) || 0;
+                            return paymentA - paymentB;
+                        });
+
                         for (let i = 0; i < remainder; i++) {
-                            const targetPerson = remainderTargets[i % remainderTargets.length];
-                            memberCosts.set(targetPerson, memberCosts.get(targetPerson) + 1);
-                        }
-                    } else if (remainderTargetsPool.length > 0) {
-                        // (フォールバック) 支払者が全員免除だった場合など
-                        for (let i = 0; i < remainder; i++) {
-                            const targetPerson = remainderTargetsPool[i % remainderTargetsPool.length];
-                            memberCosts.set(targetPerson, memberCosts.get(targetPerson) + 1);
+                            const targetPersonId = sortedTargets[i % sortedTargets.length].id;
+                            memberCosts.set(targetPersonId, memberCosts.get(targetPersonId) + 1);
                         }
                     }
                 }
 
-                const balances = new Map();
-                memberCosts.forEach((cost, name) => { balances.set(name, -cost); });
-                payments.forEach(p => { balances.set(p.payer, (balances.get(p.payer) || 0) + p.amount); });
+                const balances = new Map(); // K: participantId, V: balance
+                memberCosts.forEach((cost, id) => { balances.set(id, -cost); });
+                aggregatedPayments.forEach((amount, id) => { balances.set(id, (balances.get(id) || 0) + amount); });
                 
                 let transactions = [];
                 if (calcMode === 'cash') {
                     transactions = solveCashMinimization(balances).transactions;
                 } else {
                      const creditors = [], debtors = [];
-                    balances.forEach((amount, person) => {
-                        if (amount > 0.5) creditors.push({ person, amount });
-                        else if (amount < -0.5) debtors.push({ person, amount: -amount });
+                    balances.forEach((amount, personId) => {
+                        if (amount > 0.5) creditors.push({ personId, amount });
+                        else if (amount < -0.5) debtors.push({ personId, amount: -amount });
                     });
                     creditors.sort((a,b) => b.amount - a.amount);
                     debtors.sort((a,b) => b.amount - a.amount);
                     let c = 0, d = 0;
                     while(c < creditors.length && d < debtors.length){
                         const transfer = Math.min(creditors[c].amount, debtors[d].amount);
-                        if (transfer > 0.5) transactions.push({from: debtors[d].person, to: creditors[c].person, amount: Math.round(transfer)});
+                        if (transfer > 0.5) transactions.push({from: debtors[d].personId, to: creditors[c].personId, amount: Math.round(transfer)});
                         creditors[c].amount -= transfer;
                         debtors[d].amount -= transfer;
                         if(creditors[c].amount < 0.5) c++;
@@ -864,11 +1020,10 @@
                 }
                 
                 const displayFullCost = totalUnits > 0 ? Math.round(totalPayment / totalUnits) : 0;
-                displayResults(transactions, totalPayment, totalMembers, displayFullCost, [...allMemberNames], calcMode);
+                displayResults(transactions, totalPayment, totalMembers, displayFullCost, calcMode);
             });
             
-            // --- Display Results (変更なし) ---
-            const displayResults = (transactions, total, members, perPerson, allParticipants, calcMode) => {
+            const displayResults = (transactions, total, members, perPerson, calcMode) => {
                 resultCard.innerHTML = '';
                 const colorPalette = {
                     'blue-100': '#DBEAFE',
@@ -881,19 +1036,20 @@
                 };
                 const colorKeys = ['blue-100', 'yellow-100', 'green-100', 'pink-100', 'indigo-100', 'red-100', 'purple-100'];
                 const colorMap = new Map();
-                const sortedParticipants = [...allParticipants].sort(); 
-                sortedParticipants.forEach((person, index) => {
-                    colorMap.set(person, colorPalette[colorKeys[index % colorKeys.length]]);
+                
+                // (修正) 参加者ID -> 名前のマッピング
+                const sortedParticipants = [...participants].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+                sortedParticipants.forEach((p, index) => {
+                    colorMap.set(p.id, colorPalette[colorKeys[index % colorKeys.length]]);
                 });
                 
                 transactions.sort((a, b) => {
                     const nameA = getParticipantName(a.from);
                     const nameB = getParticipantName(b.from);
-                    const getRank = (name) => (name.startsWith('参加者') ? 1 : 0);
-                    const rankA = getRank(nameA);
-                    const rankB = getRank(nameB);
+                    const rankA = nameA.startsWith('参加者') ? 1 : 0;
+                    const rankB = nameB.startsWith('参加者') ? 1 : 0;
                     if (rankA !== rankB) return rankA - rankB;
-                    return nameA.localeCompare(nameB);
+                    return nameA.localeCompare(nameB, 'ja');
                 });
 
 
@@ -901,6 +1057,9 @@
                     resultCard.innerHTML = `<p class="text-center text-gray-600">精算の必要はありません。</p>`;
                 } else {
                     transactions.forEach((t) => {
+                        // (修正) IDから名前を取得
+                        const fromName = getParticipantName(t.from);
+                        const toName = getParticipantName(t.to);
                         const fromColor = colorMap.get(t.from) || '#F3F4F6';
                         const toColor = colorMap.get(t.to) || '#F3F4F6';
                         
@@ -911,9 +1070,9 @@
                         const mainInfo = `
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center gap-3">
-                                    <span class="font-bold text-gray-800">${getParticipantName(t.from)}</span>
+                                    <span class="font-bold text-gray-800">${fromName}</span>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                                    <span class="font-bold text-gray-800">${getParticipantName(t.to)}</span>
+                                    <span class="font-bold text-gray-800">${toName}</span>
                                 </div>
                                 <span class="font-bold text-lg text-indigo-700">¥${t.amount.toLocaleString()}</span>
                             </div>
@@ -945,8 +1104,9 @@
                 resultContainer.scrollIntoView({ behavior: 'smooth' });
             };
             
-            // --- PWA Registration (変更なし) ---
+            // --- PWA Registration ---
             if ('serviceWorker' in navigator) {
+                // (修正) 外部ファイル sw.js を登録
                 navigator.serviceWorker.register('sw.js')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
