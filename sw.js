@@ -1,8 +1,12 @@
-const CACHE_NAME = 'warikan-cache-v2';
+const CACHE_NAME = 'warikan-cache-v4'; // 念のためバージョンを更新
 const urlsToCache = [
-    './warikan-app.html', // ファイル名と一致
+    './index.html', // (修正) warikan-app.html から index.html に変更
+    './manifest.json',
     'https://cdn.tailwindcss.com',
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+    // アイコンもキャッシュ対象に追加（GitHubにアップロードするファイル）
+    './icon-192x192.png',
+    './icon-512x512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -10,7 +14,13 @@ self.addEventListener('install', event => {
         caches.open(CACHE_NAME)
             .then(cache => {
                 console.log('Opened cache');
-                return cache.addAll(urlsToCache);
+                // ネットワークリクエストが失敗してもインストールを続行する
+                const cachePromises = urlsToCache.map(urlToCache => {
+                    return cache.add(urlToCache).catch(err => {
+                        console.warn(`Failed to cache ${urlToCache}: ${err}`);
+                    });
+                });
+                return Promise.all(cachePromises);
             })
             .then(() => self.skipWaiting()) // 古いSWをすぐに置き換える
     );
@@ -37,20 +47,23 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         caches.open(CACHE_NAME).then(cache => {
             return cache.match(event.request).then(response => {
-                // 1. キャッシュがあれば、キャッシュを返しつつネットワークにリクエスト
+                // ネットワークリクエストのPromise
                 const fetchPromise = fetch(event.request).then(networkResponse => {
                     // ネットワークから取得成功
-                    cache.put(event.request, networkResponse.clone());
+                    // 有効なレスポンスのみキャッシュ
+                    if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+                        cache.put(event.request, networkResponse.clone());
+                    }
                     return networkResponse;
                 }).catch(err => {
                     // ネットワークから取得失敗（オフライン）
-                    console.log('Fetch failed; returning stale response from cache.', err);
-                    return response; // ネットワークがダメならキャッシュ済みのものを返す
+                    console.warn('Fetch failed; returning stale response from cache.', event.request.url);
+                    // ネットワークがダメならキャッシュ済みのものを返す (キャッシュがなければundefined)
+                    return response; 
                 });
 
                 // キャッシュがあればそれを先に返す (Stale)
                 if (response) {
-                    // console.log('Returning response from cache');
                     return response;
                 }
                 
@@ -60,3 +73,4 @@ self.addEventListener('fetch', event => {
         })
     );
 });
+
