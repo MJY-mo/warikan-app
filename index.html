@@ -53,7 +53,8 @@
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-    <div class="container mx-auto max-w-lg p-4 min-h-screen flex flex-col">
+    <!-- (修正) 左右の余白を p-4 -> p-3 に -->
+    <div class="container mx-auto max-w-lg p-3 min-h-screen flex flex-col">
         <!-- ヘッダー -->
         <header class="text-center my-8 flex items-center justify-center gap-3">
             <h1 class="text-4xl font-bold text-gray-900 tracking-wider">WARIKAN</h1>
@@ -62,14 +63,17 @@
             </button>
         </header>
 
-        <main class="bg-white p-6 rounded-2xl shadow-soft flex-grow">
+        <!-- (修正) カードの余白を p-6 -> p-4 に -->
+        <main class="bg-white p-4 rounded-2xl shadow-soft flex-grow">
             <!-- 支払いリスト -->
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">1. 誰がいくら支払った？</label>
+                <!-- (修正) 文字サイズ text-xs -> text-lg -->
+                <label class="block text-lg font-medium text-gray-700 mb-2">1. 誰がいくら支払った？</label>
                 <div id="payments-container" class="space-y-3">
                     <!-- 支払いはJSで動的に追加 -->
                 </div>
-                <button id="add-payment-btn" class="mt-4 w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 p-3 text-sm font-medium text-gray-700 hover:bg-gray-100 transition">
+                <!-- (修正) 文字サイズ text-sm -> text-xs -->
+                <button id="add-payment-btn" class="mt-4 w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 p-3 text-xs font-medium text-gray-700 hover:bg-gray-100 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-plus-circle"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                     支払い（レシート）を追加
                 </button>
@@ -77,17 +81,20 @@
 
             <!-- 参加人数 -->
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">2. 何人で割る？</label>
+                <!-- (修正) 文字サイズ text-xs -> text-lg -->
+                <label class="block text-lg font-medium text-gray-700 mb-2">2. 何人で割る？</label>
                 <div>
                     <label for="total-members" class="text-xs text-gray-500">合計人数</label>
-                    <input type="number" id="total-members" min="1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg p-3" placeholder="例: 5">
+                    <!-- (修正) 文字/余白 text-lg p-3 -> text-base p-2.5 -->
+                    <input type="number" id="total-members" min="1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base p-2.5" placeholder="例: 5">
                 </div>
             </div>
 
             <!-- 割引設定 (アコーディオン) -->
             <div class="mb-6">
                 <button id="discount-toggle-btn" class="w-full flex justify-between items-center text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                    <span class="text-sm font-medium text-gray-700">割引設定（半額・免除）</span>
+                    <!-- (修正) 文字サイズ text-sm -> text-xs -->
+                    <span class="text-xs font-medium text-gray-700">割引設定（半額・免除）</span>
                     <svg id="discount-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-down transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
                 </button>
                 <div id="discount-content" class="accordion-content mt-2">
@@ -100,34 +107,40 @@
             
             <!-- 精算方法 -->
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">3. やり取りの計算方法</label>
+                <!-- (修正) 文字サイズ text-xs -> text-lg -->
+                <label class="block text-lg font-medium text-gray-700 mb-2">3. やり取りの計算方法</label>
                 <fieldset class="mt-2">
                     <div class="flex items-center space-x-6">
                         <div class="flex items-center">
                             <input id="mode-simple" name="calculation-mode" type="radio" value="simple" checked class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
-                            <label for="mode-simple" class="ml-2 block text-sm text-gray-900">直接計算</label>
+                            <!-- (修正) 文字サイズ text-sm -> text-xs -->
+                            <label for="mode-simple" class="ml-2 block text-xs text-gray-900">直接計算</label>
                         </div>
                         <div class="flex items-center">
                             <input id="mode-cash" name="calculation-mode" type="radio" value="cash" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
-                            <label for="mode-cash" class="ml-2 block text-sm text-gray-900">硬貨・紙幣の枚数が最少</label>
+                            <!-- (修正) 文字サイズ text-sm -> text-xs -->
+                            <label for="mode-cash" class="ml-2 block text-xs text-gray-900">硬貨・紙幣の枚数が最少</label>
                         </div>
                     </div>
                 </fieldset>
             </div>
 
             <!-- 計算ボタン -->
-            <button id="calculate-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-lg">
+            <!-- (修正) 文字サイズ text-lg -> text-base -->
+            <button id="calculate-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-base">
                 計算する
             </button>
         </main>
 
         <!-- 結果表示エリア -->
         <div id="result-container" class="mt-8 hidden">
-            <h2 class="text-2xl font-bold text-center mb-4">計算結果</h2>
+            <!-- (修正) 文字サイズ text-2xl -> text-xl -->
+            <h2 class="text-xl font-bold text-center mb-4">計算結果</h2>
             <div id="result-card" class="bg-white p-6 rounded-2xl shadow-soft space-y-3">
                 <!-- 結果はJSで動的に追加 -->
             </div>
-            <div id="summary" class="mt-4 text-center text-sm text-gray-600 bg-gray-100 p-3 rounded-lg"></div>
+            <!-- (修正) 文字サイズ text-sm -> text-xs -->
+            <div id="summary" class="mt-4 text-center text-xs text-gray-600 bg-gray-100 p-3 rounded-lg"></div>
         </div>
     </div>
 
@@ -240,11 +253,13 @@
             };
 
             nameEditCancel.addEventListener('click', hideNameEditModal);
+            // (修正) oldId のチェックを削除
             nameEditSave.addEventListener('click', () => {
                 const newName = nameEditInput.value.trim();
                 const oldId = nameEditOldId.value;
-                if (newName && newName.length > 0 && oldId && nameEditCallback) {
-                    nameEditCallback(oldId, newName);
+                // (修正) newName があり、コールバックが設定されていれば実行
+                if (newName && newName.length > 0 && nameEditCallback) {
+                    nameEditCallback(oldId, newName); // oldId は 'new_payer_id' または p-XXXX
                 }
                 hideNameEditModal();
             });
@@ -280,9 +295,9 @@
             };
             
             const createNewParticipant = (name) => {
-                const newId = `p${Date.now()}`; // 衝突しないユニークID
+                const newId = `p${Date.now()}${Math.floor(Math.random()*100)}`; // 衝突しないユニークID
                 const newP = { id: newId, name: name };
-                participants.push(newP);
+                // participants.push(newP); // (削除) グローバルを触らない
                 console.log(`New participant created: ${newId} (${name})`);
                 return newP;
             };
@@ -297,7 +312,8 @@
 
             const createPayerDropdown = (selectedPayerId) => {
                 const select = document.createElement('select');
-                select.className = 'payer-select w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 text-base';
+                // (修正) 文字/余白 text-base p-3 -> text-sm p-2.5
+                select.className = 'payer-select w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2.5';
                 
                 // 支払者に限定せず、全参加者をドロップダウンに表示
                 participants.forEach(p => {
@@ -342,7 +358,7 @@
             };
 
             const updateDiscountMemberSelector = () => {
-                // 現在のチェック状態を保存
+                // 1. 現在のチェック状態を保存
                 const currentDiscounts = new Map();
                 discountMembersSelector.querySelectorAll('input[type="radio"]').forEach(radio => {
                     if (radio.checked) {
@@ -350,64 +366,89 @@
                     }
                 });
                 
+                // 2. DOMをクリア
                 discountMembersSelector.innerHTML = '';
+                
+                // 3. 必要な情報を取得
                 const totalMembers = parseInt(totalMembersInput.value) || 0;
+                const currentPayerIds = new Set(Array.from(document.querySelectorAll('.payer-select')).map(s => s.value).filter(v => v !== 'new_payer'));
                 
-                // 支払い者リストから現在の参加者IDを取得
-                const currentPayerIds = [...new Set(Array.from(document.querySelectorAll('.payer-select')).map(s => s.value).filter(v => v !== 'new_payer'))];
+                let newParticipants = [];
                 
-                // participants 配列を更新
-                const allParticipantIds = new Set(currentPayerIds);
-                participants.forEach(p => allParticipantIds.add(p.id));
-
-                const nonPayerCount = totalMembers - allParticipantIds.size;
+                // 4. 支払者 + カスタム名の人を優先的に保持
+                const essentialParticipantIds = new Set(currentPayerIds);
+                const customNamedNonPayers = [];
                 
-                if (nonPayerCount > 0) {
-                    // 足りない分だけ「参加者X」を追加
-                    let participantCounter = 1;
-                    // 既存の「参加者X」の名前を探す
-                    participants.forEach(p => {
-                        const match = p.name.match(/^参加者(\d+)$/);
-                        if (match) {
-                            const num = parseInt(match[1]);
-                            if (num >= participantCounter) {
-                                participantCounter = num + 1;
-                            }
-                        }
-                    });
-
-                    for (let i = 0; i < nonPayerCount; i++) {
-                        const newP = createNewParticipant(`参加者${participantCounter + i}`);
-                        allParticipantIds.add(newP.id);
-                    }
-                } else if (nonPayerCount < 0) {
-                    // 人数が減った場合、支払いに使われていない「参加者X」を削除
-                    const participantIdsInUse = new Set(currentPayerIds);
-                    participants = participants.filter(p => {
-                        // 支払いに使われているか、または「参加者X」形式でない名前（＝手動で名前をつけた人）は保持
-                        const isInUse = participantIdsInUse.has(p.id);
-                        const isDefaultName = /^参加者(\d+)$/.test(p.name);
-                        if (isInUse || !isDefaultName) {
-                            return true;
-                        }
-                        // 支払いに使われておらず、デフォルト名の人は削除候補
-                        return false; 
-                    });
-                    
-                    // 削除してもまだ人数が多い場合、支払いに使われていない人を（名前に関わらず）削除
-                    let diff = participants.length - totalMembers;
-                    if (diff > 0) {
-                         participants = participants.filter(p => {
-                            if (diff > 0 && !participantIdsInUse.has(p.id)) {
-                                diff--;
-                                return false; // 削除
-                            }
-                            return true; // 保持
-                        });
+                for (const p of participants) {
+                    if (currentPayerIds.has(p.id)) {
+                        newParticipants.push(p);
+                    } else if (!/^参加者(\d+)$/.test(p.name)) {
+                        // 支払者ではなく、デフォルト名でもない (カスタム名)
+                        customNamedNonPayers.push(p);
+                        essentialParticipantIds.add(p.id); // 必須リストに追加
                     }
                 }
+                newParticipants.push(...customNamedNonPayers);
 
-                // 参加者リストをソートして表示
+                // 5. 必須の人の数と合計人数を比較
+                const currentNum = newParticipants.length;
+                
+                if (currentNum < totalMembers) {
+                    // 枠が余っている -> 既存の「参加者X」で埋め、足りなければ新規作成
+                    
+                    // 既存の「参加者X」
+                    const defaultNamedNonPayers = participants.filter(p => 
+                        !essentialParticipantIds.has(p.id) && /^参加者(\d+)$/.test(p.name)
+                    );
+                    
+                    let slotsToFill = totalMembers - currentNum;
+                    
+                    // 既存の「参加者X」で埋める
+                    for (const p of defaultNamedNonPayers) {
+                        if (slotsToFill > 0) {
+                            newParticipants.push(p);
+                            slotsToFill--;
+                        }
+                    }
+                    
+                    // まだ枠が余るなら新規作成
+                    if (slotsToFill > 0) {
+                        let participantCounter = 1;
+                        newParticipants.forEach(p => { // (修正) newParticipants を走査
+                            const match = p.name.match(/^参加者(\d+)$/);
+                            if (match) {
+                                const num = parseInt(match[1]);
+                                if (num >= participantCounter) {
+                                    participantCounter = num + 1;
+                                }
+                            }
+                        });
+
+                        for (let i = 0; i < slotsToFill; i++) {
+                            const newP = createNewParticipant(`参加者${participantCounter + i}`);
+                            newParticipants.push(newP);
+                        }
+                    }
+                    
+                } else if (currentNum > totalMembers) {
+                    // 人数オーバー -> カスタム名の非支払者を削除
+                    let numToRemove = currentNum - totalMembers;
+                    
+                    // カスタム名の非支払者 (customNamedNonPayers) を後ろから削除
+                    newParticipants = newParticipants.filter(p => {
+                        // (修正) 支払者でなく、かつカスタム名の人を削除対象
+                        if (numToRemove > 0 && !currentPayerIds.has(p.id) && customNamedNonPayers.some(cnp => cnp.id === p.id)) {
+                            numToRemove--;
+                            return false; // 削除
+                        }
+                        return true; // 保持
+                    });
+                }
+                
+                // 6. participants 配列を更新
+                participants = newParticipants;
+
+                // 7. DOMを再構築
                 const sortedParticipants = [...participants].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
                 
                 sortedParticipants.forEach(p => {
@@ -419,7 +460,8 @@
                     
                     const label = document.createElement('label');
                     label.htmlFor = `discount-none-${p.id}`;
-                    label.className = 'text-sm text-gray-700 font-medium';
+                    // (修正) 文字サイズ text-sm -> text-xs
+                    label.className = 'text-xs text-gray-700 font-medium';
                     label.textContent = p.name;
                     
                     const editBtn = document.createElement('button');
@@ -429,7 +471,7 @@
                     editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>`;
                     editBtn.addEventListener('click', (e) => {
                         const id = e.currentTarget.dataset.participantId;
-                        const participant = getParticipantById(id);
+                        const participant = getParticipantById(id); // getParticipantById はグローバル `participants` を見るのでOK
                         if (participant) {
                             showNameEditModal(participant.id, participant.name, (oldId, newName) => {
                                 setParticipantName(oldId, newName);
@@ -445,7 +487,7 @@
                     optionsDiv.className = 'flex items-center gap-3';
                     
                     const radioName = `discount-${p.id}`;
-                    const discountType = currentDiscounts.get(p.id) || 'none';
+                    const discountType = currentDiscounts.get(p.id) || 'none'; // ステップ1で保存した値
 
                     optionsDiv.innerHTML = `
                         <div class="flex items-center">
@@ -469,8 +511,9 @@
                     discountMembersSelector.appendChild(div);
                 });
                 
-                // 支払いドロップダウンも同期
+                // 8. 支払いドロップダウンも同期
                 updateAllPayerDropdowns();
+                // 9. 保存
                 saveState();
             };
 
@@ -487,15 +530,18 @@
                 const selectEl = createPayerDropdown(defaultPayerId);
 
                 paymentEl.innerHTML = `
-                    <div class="w-2/5 relative">
+                    <!-- (修正) w-2/5 -> flex-grow (名前欄を広げる) -->
+                    <div class="flex-grow relative">
                         ${selectEl.outerHTML}
                     </div>
                     <!-- (修正) 編集ボタンを追加 -->
                     <button type="button" class="edit-payer-btn flex-shrink-0 text-gray-400 hover:text-indigo-600 transition">
                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>
                     </button>
-                    <div class="flex-grow">
-                        <input type="number" class="amount-input w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 text-base" placeholder="金額 (円)" value="${payment && payment.amount ? payment.amount : ''}">
+                    <!-- (修正) flex-grow -> w-28 (金額欄を固定幅に) -->
+                    <div class="w-28">
+                        <!-- (修正) 文字/余白 text-base p-3 -> text-sm p-2.5 -->
+                        <input type="number" class="amount-input w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2.5" placeholder="金額 (円)" value="${payment && payment.amount ? payment.amount : ''}">
                     </div>
                     <button type="button" class="remove-payment-btn flex-shrink-0 text-gray-400 hover:text-red-500 transition" data-remove="${paymentId}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
@@ -510,8 +556,10 @@
                 payerSelect.addEventListener('change', (e) => {
                     if (e.target.value === 'new_payer') {
                         // 新しい支払い者を追加
-                        showNameEditModal('', '', (oldId, newName) => {
+                        // (修正) 'new_payer_id' を渡す
+                        showNameEditModal('new_payer_id', '', (oldId, newName) => {
                             const newP = createNewParticipant(newName);
+                            participants.push(newP); // (修正) グローバル配列に追加
                             // ドロップダウンを更新
                             updateAllPayerDropdowns();
                             // 割引リストも更新
@@ -597,7 +645,8 @@
                     if (!savedState) {
                         console.log('No saved state found. Initializing.');
                         // (修正) デフォルト名を「自分」に
-                        createNewParticipant('自分');
+                        const defaultParticipant = createNewParticipant('自分');
+                        participants.push(defaultParticipant); // (修正) 配列に追加
                         addPayment(); // 空の支払い項目を1つ追加
                         updateDiscountMemberSelector(); // 人数(1)に基づいて更新
                         return; // 初期化終了
@@ -615,7 +664,8 @@
                     console.warn('Failed to parse state or invalid state structure. Resetting state.', e);
                     localStorage.removeItem(STORAGE_KEY);
                     // (修正) デフォルト名を「自分」に
-                    createNewParticipant('自分');
+                    const defaultParticipant = createNewParticipant('自分');
+                    participants.push(defaultParticipant); // (修正) 配列に追加
                     addPayment();
                     updateDiscountMemberSelector();
                     return;
@@ -659,7 +709,8 @@
                      addPayment();
                 } else {
                     // 参加者も支払いも0件（＝完全な初期状態）
-                    createNewParticipant('自分');
+                    const defaultParticipant = createNewParticipant('自分');
+                    participants.push(defaultParticipant); // (修正) 配列に追加
                     addPayment();
                 }
                 
@@ -893,7 +944,10 @@
                 });
 
                 if (aggregatedPayments.size === 0 && totalPayment === 0) {
-                    showError('支払いを1つ以上入力してください。');
+                    // 支払い0円の場合は計算結果をクリアして終了
+                    resultContainer.classList.add('hidden');
+                    resultCard.innerHTML = '';
+                    summaryDiv.innerHTML = '';
                     return;
                 }
                 
@@ -921,7 +975,7 @@
                         showError('割り勘の対象者（全額負担の人）が1人もいません。');
                         return;
                     }
-                    // 全員免除で支払い0円ならOK
+                    // 全員免除で支払い0円ならOK (上でリターン済み)
                 }
                 
                 const baseFullCost = (totalUnits > 0) ? Math.floor(totalPayment / totalUnits) : 0;
@@ -1070,11 +1124,14 @@
                         const mainInfo = `
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center gap-3">
-                                    <span class="font-bold text-gray-800">${fromName}</span>
+                                    <!-- (修正) 文字サイズ font-bold -> font-medium text-sm -->
+                                    <span class="font-medium text-sm text-gray-800">${fromName}</span>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                                    <span class="font-bold text-gray-800">${toName}</span>
+                                    <!-- (修正) 文字サイズ font-bold -> font-medium text-sm -->
+                                    <span class="font-medium text-sm text-gray-800">${toName}</span>
                                 </div>
-                                <span class="font-bold text-lg text-indigo-700">¥${t.amount.toLocaleString()}</span>
+                                <!-- (修正) 文字サイズ text-lg -> text-base -->
+                                <span class="font-bold text-base text-indigo-700">¥${t.amount.toLocaleString()}</span>
                             </div>
                         `;
 
@@ -1083,8 +1140,10 @@
                             const payment = getOptimalPayment(t.amount);
                             paymentDetail = `
                                 <div class="mt-3 pt-3 border-t border-gray-400 border-opacity-30">
-                                    <p class="text-sm font-medium text-gray-800">支払い方法提案:</p>
-                                    <p class="text-sm text-gray-600">${payment.text}</p>
+                                    <!-- (修正) 文字サイズ text-sm -> text-xs -->
+                                    <p class="text-xs font-medium text-gray-800">支払い方法提案:</p>
+                                    <!-- (修正) 文字サイズ text-sm -> text-xs -->
+                                    <p class="text-xs text-gray-600">${payment.text}</p>
                                 </div>
                             `;
                         }
@@ -1122,4 +1181,6 @@
     </script>
 </body>
 </html>
+
+
 
