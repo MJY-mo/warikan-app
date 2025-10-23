@@ -1,4 +1,4 @@
-const CACHE_NAME = 'warikan-cache-v5'; // キャッシュバージョン
+const CACHE_NAME = 'warikan-cache-v6'; // (修正) キャッシュバージョンをv6に更新
 const urlsToCache = [
     './index.html', 
     './manifest.json',
@@ -22,12 +22,12 @@ self.addEventListener('install', event => {
                 });
                 return Promise.all(cachePromises);
             })
-            .then(() => self.skipWaiting()) 
+            .then(() => self.skipWaiting()) // インストール後すぐに有効化
     );
 });
 
 self.addEventListener('activate', event => {
-     // 古いキャッシュを削除
+     // 古いキャッシュ(v5以前)を削除
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
@@ -38,13 +38,13 @@ self.addEventListener('activate', event => {
                     return caches.delete(cacheName);
                 })
             );
-        }).then(() => self.clients.claim()) 
+        }).then(() => self.clients.claim()) // ページを即座にコントロール
     );
 });
 
 self.addEventListener('fetch', event => {
-    // HTMLファイル(index.html)は Network First に変更
-    // これにより、オンライン時は常に最新版を見に行き、オフライン時だけキャッシュを使う
+    // HTMLファイル(index.html)は Network First
+    // オンライン時は常に最新版を見に行き、オフライン時だけキャッシュを使う
     if (event.request.mode === 'navigate' || (event.request.destination === 'document')) {
         event.respondWith(
             fetch(event.request).then(response => {
@@ -62,12 +62,12 @@ self.addEventListener('fetch', event => {
     }
 
     // その他のアセット (CSS, Font, Iconなど) は Stale-While-Revalidate
+    // （キャッシュを返しつつ、裏でネットワークに更新を確認しに行く）
     event.respondWith(
         caches.open(CACHE_NAME).then(cache => {
             return cache.match(event.request).then(response => {
                 const fetchPromise = fetch(event.request).then(networkResponse => {
                     if (networkResponse && networkResponse.status === 200) {
-                         // 'basic' だけでなく 'opaque' (CDN) もキャッシュ対象にする
                         cache.put(event.request, networkResponse.clone());
                     }
                     return networkResponse;
