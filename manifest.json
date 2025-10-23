@@ -1,0 +1,22 @@
+{
+    "name": "WARIKAN",
+    "short_name": "WARIKAN",
+    "start_url": "./warikan-app.html",
+    "display": "standalone",
+    "background_color": "#f9fafb",
+    "theme_color": "#4f46e5",
+    "description": "スマートな割り勘計算アプリ",
+    "icons": [
+        {
+            "src": "./icon-192x192.png",  <-- ここを修正
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "./icon-512x512.png",  <-- ここを修正
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
+
